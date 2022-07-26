@@ -1,4 +1,5 @@
 use clap::Parser;
+use weirdshark;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -17,10 +18,11 @@ struct Args {
 
     // TODO Choose filter details in weirdshark lib and implement this param accordingly
     /// Filter
-    #[clap(short, long, value_parser, default_value = "")]
+    #[clap(long, value_parser, default_value = "")]
     filter: String,
 }
 
 fn main() {
     let args = Args::parse();
+    weirdshark::hello_world();
 }
