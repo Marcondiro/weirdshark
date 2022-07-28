@@ -2,11 +2,15 @@
 name = "weirdshark"
 version = "0.1.0"
 edition = "2021"
+build="build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+#[features]
+#default = ["std"]
+#std = ["pnet_base/std", "pnet_sys", "pnet_datalink", "pnet_transport", "ipnetwork"]
 
 [dependencies]
-pnet = "0.31.0"
+pnet = { version = "0.31.0", features = ["std"] }
 pnet_datalink = "0.31.0"
 serde = { version = "1.0.140", features = ["derive"] }
 csv = "1.1.6"
