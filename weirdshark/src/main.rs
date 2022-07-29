@@ -7,7 +7,6 @@
 // except according to those terms.
 
 /// This example shows a basic packet logger using libpnet
-extern crate pnet;
 
 use pnet::datalink::{self, Config, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
@@ -136,15 +135,13 @@ fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket
 }
 
 fn main() {
-
-
     let iface_name = match env::args().nth(1) {
         Some(n) => n,
         None => {
             let ifaces = datalink::interfaces();
             writeln!(io::stderr(), "USAGE: packetdump <NETWORK INTERFACE>").unwrap();
             writeln!(io::stdout(), "Available interfaces:").unwrap();
-            for iface in ifaces{
+            for iface in ifaces {
                 writeln!(io::stdout(), "{:?}", iface).unwrap();
             }
 

@@ -24,5 +24,5 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    weirdshark::test_save_csv().unwrap();
+    weirdshark::capture(args.interface).unwrap();
 }
