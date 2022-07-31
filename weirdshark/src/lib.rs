@@ -13,6 +13,7 @@ use pnet::packet::ipv4::Ipv4Packet;
 use pnet::packet::ipv6::Ipv6Packet;
 use pnet::packet::tcp::TcpPacket;
 use pnet::packet::udp::UdpPacket;
+use crate::TransportProtocols::{TCP, UDP};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 enum TransportProtocols {
@@ -106,51 +107,6 @@ pub fn capture(interface: String) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_udp_packet(source: IpAddr, destination: IpAddr, packet: &[u8], map: &mut HashMap<RecordKey, RecordValue>) {
-    let udp = UdpPacket::new(packet);
-
-    if let Some(udp) = udp {
-        let k = RecordKey {
-            source_ip: source,
-            destination_ip: destination,
-            transport_protocol: TransportProtocols::UDP,
-            source_port: udp.get_source(),
-            destination_port: udp.get_destination(),
-        };
-        let now = Utc::now();
-        map.entry(k)
-            .and_modify(|v| {
-                v.bytes += packet.len();
-                v.last_seen = now;
-            })
-            .or_insert(RecordValue { bytes: packet.len(), first_seen: now, last_seen: now });
-    } else {
-        println!("Malformed UDP Packet");
-    }
-}
-
-fn handle_tcp_packet(source: IpAddr, destination: IpAddr, packet: &[u8], map: &mut HashMap<RecordKey, RecordValue>) {
-    let tcp = TcpPacket::new(packet);
-    if let Some(tcp) = tcp {
-        let k = RecordKey {
-            source_ip: source,
-            destination_ip: destination,
-            transport_protocol: TransportProtocols::TCP,
-            source_port: tcp.get_source(),
-            destination_port: tcp.get_destination(),
-        };
-        let now = Utc::now();
-        map.entry(k)
-            .and_modify(|v| {
-                v.bytes += packet.len();
-                v.last_seen = now;
-            })
-            .or_insert(RecordValue { bytes: packet.len(), first_seen: now, last_seen: now });
-    } else {
-        println!("Malformed TCP Packet");
-    }
-}
-
 fn handle_transport_protocol(
     source: IpAddr,
     destination: IpAddr,
@@ -158,15 +114,41 @@ fn handle_transport_protocol(
     packet: &[u8],
     map: &mut HashMap<RecordKey, RecordValue>,
 ) {
-    match protocol {
+    let (transport_protocol, source_port, destination_port) = match protocol {
         IpNextHeaderProtocols::Udp => {
-            handle_udp_packet(source, destination, packet, map)
+            let udp = UdpPacket::new(packet);
+            if let Some(udp) = udp {
+                (UDP, udp.get_source(), udp.get_destination())
+            } else {
+                println!("Malformed UDP Packet");
+                return;
+            }
         }
         IpNextHeaderProtocols::Tcp => {
-            handle_tcp_packet(source, destination, packet, map)
+            let tcp = TcpPacket::new(packet);
+            if let Some(tcp) = tcp {
+                (TCP, tcp.get_source(), tcp.get_destination())
+            } else {
+                println!("Malformed TCP Packet");
+                return;
+            }
         }
         _ => return, // Ignore all the rest
-    }
+    };
+    let k = RecordKey {
+        source_ip: source,
+        destination_ip: destination,
+        transport_protocol,
+        source_port,
+        destination_port,
+    };
+    let now = Utc::now();
+    map.entry(k)
+        .and_modify(|v| {
+            v.bytes += packet.len();
+            v.last_seen = now;
+        })
+        .or_insert(RecordValue { bytes: packet.len(), first_seen: now, last_seen: now });
 }
 
 fn handle_ipv4_packet(ethernet: &EthernetPacket, map: &mut HashMap<RecordKey, RecordValue>) {
@@ -180,7 +162,7 @@ fn handle_ipv4_packet(ethernet: &EthernetPacket, map: &mut HashMap<RecordKey, Re
             map,
         );
     } else {
-        println!("Malformed IPv4 Packet");
+        println!("Malformed IPv4 Packet"); // TODO consider implementing a verbose flag to print or not these msg
     }
 }
 
