@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::IpAddr;
+use std::path::Path;
 use serde::Serialize;
 use chrono::{DateTime, Utc};
 
@@ -64,19 +65,19 @@ struct RecordValue {
     last_seen: DateTime<Utc>,
 }
 
-fn write_csv(map: HashMap<RecordKey, RecordValue>) -> Result<(), Box<dyn Error>> {
-    let mut wtr = csv::Writer::from_path("test.csv")?;
+fn write_csv<P: AsRef<Path>>(map: HashMap<RecordKey, RecordValue>, path: P) -> Result<(), Box<dyn Error>> {
+    let mut writer = csv::Writer::from_path(path)?;
 
     for (k, v) in map.into_iter() {
         let record = Record::from_key_value(k, v);
-        wtr.serialize(record)?;
+        writer.serialize(record)?;
     }
 
-    wtr.flush()?;
+    writer.flush()?;
     Ok(())
 }
 
-pub fn capture(interface: String) -> Result<(), String> {
+pub fn capture<P: AsRef<Path>>(interface: String, path: P) -> Result<(), String> {
     // Find the network interface with the provided name
     let interface = interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.name == interface)
@@ -102,7 +103,7 @@ pub fn capture(interface: String) -> Result<(), String> {
         }
     }
 
-    write_csv(map).unwrap();
+    write_csv(map, path).unwrap();
 
     Ok(())
 }
