@@ -1,3 +1,5 @@
+mod capturer;
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::IpAddr;
@@ -82,7 +84,7 @@ pub fn capture<P: AsRef<Path>>(interface: String, path: P) -> Result<(), String>
     let interface = interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.name == interface)
         .next()
-        .expect("Network interface not found"); // TODO manage this with errors
+        .expect("Network interface not found"); // TODO: manage this with errors
 
     // No need for custom config, promiscuous by default
     let (_, mut rx) = match channel(&interface, Default::default()) {
