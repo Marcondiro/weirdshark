@@ -18,6 +18,8 @@ use crate::TransportProtocols::{TCP, UDP};
 
 pub mod capturer;
 
+//TODO reorganize modules
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 enum TransportProtocols {
     TCP,

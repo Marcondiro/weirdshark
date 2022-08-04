@@ -33,7 +33,7 @@ impl CaptureConfig {
     pub fn new(interface_name: &str, report_path: &str, report_interval_seconds: Option<i64>) -> Self {
         let interface = CaptureConfig::get_interface_by_name(interface_name)
             .expect("Network interface not found");
-        // TODO negative duration
+        // TODO negative duration check
         let report_path = PathBuf::from(report_path);
         let report_interval = match report_interval_seconds {
             Some(s) => Some(Duration::seconds(s)),
@@ -66,8 +66,12 @@ impl CaptureConfig {
         self.interface = interface;
     }
 
-    pub fn set_report_interval(&mut self, dur: Option<Duration>) {
-        self.report_interval = dur;
+    pub fn set_report_interval(&mut self, seconds: Option<i64>) {
+        // TODO negative duration check
+        self.report_interval = match seconds {
+            Some(s) => Some(Duration::seconds(s)),
+            None => None,
+        };
     }
 }
 
@@ -110,7 +114,7 @@ impl CaptureController {
         self.sender.send(WorkerCommand::Stop).unwrap();
         match self.thread_handle.join() {
             Ok(_) => {}
-            Err(e) => println!("{:?}", e)
+            Err(e) => println!("{:?}", e) //TODO manage properly
         }
     }
 }
@@ -119,15 +123,7 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
     // let start_time = Utc::now();
     let mut map = HashMap::new();
 
-    //TODO handle scheduled file generation (time based file generation in a new thread)
-    // let mut i = match cfg.capture_limit {
-    //     LimitType::Time(_) => LimitType::Time(Utc::now() - start_time),
-    //     LimitType::Packets(_) => LimitType::Packets(0),
-    // };
-    // i = match cfg.capture_limit {
-    //     LimitType::Time(_) => LimitType::Time(Utc::now() - start_time),
-    //     LimitType::Packets(i_val) => LimitType::Packets(i_val + 1),
-    // };
+    //TODO handle scheduled file generation (time based file generation in a new thread?)
 
     loop {
         match receiver.recv() {
