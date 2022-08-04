@@ -15,7 +15,7 @@ pub struct Args {
     /// Time interval in seconds after which a new report is generated
     /// (if not provided, only one report at the end is generated)
     #[clap(short, long, value_parser)]
-    pub time_interval: Option<usize>,
+    pub time_interval: Option<i64>,
 
     /// Filter by source ip
     #[clap(short, long, value_parser)]

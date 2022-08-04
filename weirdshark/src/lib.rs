@@ -1,5 +1,3 @@
-mod capturer;
-
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::IpAddr;
@@ -17,6 +15,8 @@ use pnet::packet::ipv6::Ipv6Packet;
 use pnet::packet::tcp::TcpPacket;
 use pnet::packet::udp::UdpPacket;
 use crate::TransportProtocols::{TCP, UDP};
+
+pub mod capturer;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 enum TransportProtocols {
@@ -67,7 +67,7 @@ struct RecordValue {
     last_seen: DateTime<Utc>,
 }
 
-fn write_csv<P: AsRef<Path>>(map: HashMap<RecordKey, RecordValue>, path: P) -> Result<(), Box<dyn Error>> {
+fn write_csv(map: HashMap<RecordKey, RecordValue>, path: &Path) -> Result<(), Box<dyn Error>> {
     let mut writer = csv::Writer::from_path(path)?;
 
     for (k, v) in map.into_iter() {
@@ -79,7 +79,7 @@ fn write_csv<P: AsRef<Path>>(map: HashMap<RecordKey, RecordValue>, path: P) -> R
     Ok(())
 }
 
-pub fn capture<P: AsRef<Path>>(interface: String, path: P) -> Result<(), String> {
+pub fn capture(interface: String, path: &Path) -> Result<(), String> {
     // Find the network interface with the provided name
     let interface = interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.name == interface)
