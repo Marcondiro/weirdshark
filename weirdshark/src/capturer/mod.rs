@@ -1,19 +1,15 @@
 use std::collections::HashMap;
-use std::collections::linked_list::LinkedList;
 
 use std::mem;
-use std::net::IpAddr;
-use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
-use std::thread::{JoinHandle, sleep};
-use std::time;
-use pnet::datalink::{channel, interfaces, NetworkInterface};
+use std::thread::{JoinHandle};
+use pnet::datalink::{channel, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet;
-use crate::{get_interface_by_description, get_interface_by_name, handle_ethernet_frame, write_csv};
-use crate::capturer::config::CaptureConfig;
+use crate::{handle_ethernet_frame, write_csv};
+pub use crate::capturer::config::CaptureConfig;
 
-mod config;
+pub mod config;
 
 pub enum WorkerCommand {
     Start,
