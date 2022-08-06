@@ -4,8 +4,10 @@ use std::path::PathBuf;
 use std::time;
 use pnet::datalink;
 use pnet::datalink::NetworkInterface;
-use crate::capturer::{capture_thread_fn, CaptureController, DirectionFilter, IpFilter, WeirdsharkError};
+use crate::capturer::{capture_thread_fn, CaptureController};
 use crate::{get_interface_by_description, get_interface_by_name};
+use crate::filters::{IpFilter,DirectionFilter};
+use crate::error::WeirdsharkError;
 
 pub struct CaptureConfig {
     pub(crate) interface: Option<NetworkInterface>,

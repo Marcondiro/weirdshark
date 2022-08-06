@@ -17,6 +17,8 @@ use crate::TransportProtocols::{TCP, UDP};
 
 pub mod capturer;
 mod write_scheduler;
+mod filters;
+mod error;
 
 //TODO reorganize modules
 
