@@ -1,77 +1,113 @@
 use std::collections::HashMap;
+use std::collections::linked_list::LinkedList;
+
 use std::mem;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
-use std::thread::JoinHandle;
-use chrono::Duration;
-use pnet::datalink::{channel, interfaces};
+use std::thread::{JoinHandle, sleep};
+use std::time;
+use pnet::datalink::{channel, interfaces, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
-use pnet::packet::ethernet::EthernetPacket;
-use crate::{handle_ethernet_frame, NetworkInterface, write_csv};
+use pnet::packet::ethernet;
+use crate::{get_interface_by_description, get_interface_by_name, handle_ethernet_frame, write_csv};
+
 
 pub struct CaptureConfig {
-    interface: NetworkInterface,
-    report_path: PathBuf,
-    report_interval: Option<Duration>,
+    interface: Option<NetworkInterface>,
+    report_path: Option<PathBuf>,
+    report_interval: Option<time::Duration>,
+    ip_filters: LinkedList<(IpFilter,DirectionFilter)>,
+    //l3_filters : LinkedList<Filter<Ipv4Packet>>,
     //TODO filters
 }
 
 impl Default for CaptureConfig {
     fn default() -> Self {
-        let interface = interfaces().into_iter()
-            .filter(|i| !i.is_loopback() && i.is_up() && i.is_running())
-            .next().expect("Weirdshark cannot find a default interface.");
+        let interface = Some(interfaces().into_iter()
+            .filter(|i| !i.is_loopback()
+                && i.is_up()
+                && is_interface_running(i)
+                && !i.ips.is_empty())
+            .next()
+            .expect("Weirdshark cannot find a default interface."));
         Self {
             interface,
-            report_path: PathBuf::from("weirdshark_capture.csv"),
+            report_path: Some(PathBuf::from("weirdshark_capture.csv")),
             report_interval: None,
+            ip_filters: LinkedList::new(),
+            //l3_filters : LinkedList::new(),
         }
     }
 }
 
-impl CaptureConfig {
-    pub fn new(interface_name: &str, report_path: &str, report_interval_seconds: Option<i64>) -> Self {
-        let interface = CaptureConfig::get_interface_by_name(interface_name)
-            .expect("Network interface not found");
-        // TODO negative duration check
-        let report_path = PathBuf::from(report_path);
-        let report_interval = match report_interval_seconds {
-            Some(s) => Some(Duration::seconds(s)),
-            None => None,
-        };
-        Self {
-            interface,
-            report_path,
-            report_interval,
-        }
-    }
+#[cfg(unix)]
+fn is_interface_running(i: &NetworkInterface) -> bool {
+    i.is_running()
+}
 
-    fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
-        interfaces().into_iter()
-            .filter(|i: &NetworkInterface| i.name == name)
-            .next()
+#[cfg(not(unix))]
+fn is_interface_running(_i: &NetworkInterface) -> bool {
+    return true;
+}
+
+impl CaptureConfig {
+    pub fn new() -> Self {
+
+        Self {
+            interface: None,
+            report_path: None,
+            report_interval: None,
+            ip_filters: LinkedList::new(),
+            //l3_filters : LinkedList::new(),
+        }
     }
 
     //TODO: add fn set interface by description for windows
 
-    pub fn set_interface_by_name(&mut self, name: &str) {
-        self.interface = CaptureConfig::get_interface_by_name(name)
-            .expect("Network interface not found"); // TODO: manage this with errors?
+    pub fn set_interface_by_name(mut self, name: &str) -> Self {
+        self.interface = get_interface_by_name(name);
+            //.expect("Network interface not found"); // TODO: manage this with errors?
+        self
     }
 
-    pub fn set_interface_by_number(&mut self, number: usize) {
+    pub fn set_interface_by_description(mut self, name: &str) -> Self {
+        self.interface = get_interface_by_description(name);
+            //.expect("Network interface not found"); // TODO: manage this with errors?
+        self
+    }
+
+    pub fn set_interface_by_index(mut self, index: u32) -> Self {
         let interface = interfaces().into_iter()
-            .nth(number)
-            .expect("Network interface not found"); // TODO: manage this with errors
+            .filter(|i| i.index == index)
+            .next();
+            //.expect("Network interface not found"); // TODO: manage this with errors
         self.interface = interface;
+        self
     }
 
-    pub fn set_report_interval(&mut self, seconds: Option<i64>) {
-        // TODO negative duration check
-        self.report_interval = match seconds {
-            Some(s) => Some(Duration::seconds(s)),
-            None => None,
-        };
+    pub fn set_report_path(mut self, path: PathBuf ) ->Self{
+        self.report_path = Some(path);
+        self
+    }
+
+    pub fn set_report_interval(mut self, duration: Option<time::Duration>) -> Self {
+        self.report_interval = duration;
+        self
+    }
+
+    pub fn add_filter_ip_addr(mut self, addr: IpAddr, ) -> Self {
+        let filter = IpFilter::Single(addr);
+        self.ip_filters.push_back((filter,DirectionFilter::Both) );
+        self
+    }
+
+    pub fn build_capturer(self) -> Result<CaptureController, WeirdsharkError> {
+        //TODO: this should check thath all Configs are correct
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let t_sender = sender.clone();
+        let thread_handle = std::thread::spawn(move || capture_thread_fn(self, t_sender, receiver));
+        Ok(CaptureController { sender, thread_handle })
     }
 }
 
@@ -90,13 +126,6 @@ pub struct CaptureController {
 }
 
 impl CaptureController {
-    pub fn new(cfg: CaptureConfig) -> Self {
-        let (sender, receiver) = std::sync::mpsc::channel();
-        let t_sender = sender.clone();
-        let thread_handle = std::thread::spawn(move || capture_thread_fn(cfg, t_sender, receiver));
-        Self { sender, thread_handle }
-    }
-
     pub fn start(&self) {
         //TODO: manager error
         self.sender.send(WorkerCommand::Start).unwrap();
@@ -128,7 +157,7 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
     loop {
         match receiver.recv() {
             Ok(WorkerCommand::Start) => {
-                pnet_capture_adapter(&cfg.interface, &sender);
+                pnet_capture_adapter(cfg.interface.as_ref().unwrap(), &sender);
             }
             Ok(WorkerCommand::Pause) => todo!(),
             Ok(WorkerCommand::Stop) => break,
@@ -136,14 +165,14 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
                 match p {
                     Ok(packet) => {
                         //TODO: Proposal: Change this call stack to TCP using IP using layer2 to retrieve a TCP segment A.
-                        handle_ethernet_frame(&EthernetPacket::new(&packet).unwrap(), &mut map);
+                        handle_ethernet_frame(&ethernet::EthernetPacket::new(&packet).unwrap(), &mut map);
                     }
                     Err(e) => panic!("packetdump: unable to receive packet: {}", e), //TODO manage with errors
                 }
             }
             Ok(WorkerCommand::WriteFile) => {
                 let old_map = mem::take(&mut map);
-                write_csv(old_map, &cfg.report_path)
+                write_csv(old_map, cfg.report_path.as_ref().unwrap())
                     .expect("Weirdshark encountered an error while writing the file"); //TODO manage with errors?
             }
             Err(_) => todo!(),
@@ -178,4 +207,32 @@ fn pnet_capture_adapter(interface: &NetworkInterface, sender: &Sender<WorkerComm
             }
         }
     });
+}
+
+enum IpFilter {
+    Single(IpAddr),
+    Range(IpAddr, IpAddr),
+    List(Vec<IpAddr>),
+}
+
+impl IpFilter {
+    pub fn filter(&self, x:IpAddr) -> bool {
+        use IpFilter::{Single,Range,List};
+        match self {
+            Single(addr)=> x == addr,
+            Range(start_addr, end_addr) => start_addr <= &x && &x<=end_addr,
+            List(list) => list.iter().any(|ip|{ip == x})
+        }
+    }
+}
+
+enum DirectionFilter {
+    Source,
+    Destination,
+    Both,
+}
+
+#[derive(Debug)]
+pub enum WeirdsharkError {
+    GenericError,
 }

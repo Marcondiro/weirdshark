@@ -5,8 +5,7 @@ use std::path::Path;
 use serde::Serialize;
 use chrono::{DateTime, Utc};
 
-use pnet::datalink::{interfaces, NetworkInterface, channel};
-use pnet::datalink::Channel::Ethernet;
+pub use pnet::datalink::{interfaces, NetworkInterface, channel};
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket};
 use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
 use pnet::packet::Packet;
@@ -81,35 +80,20 @@ fn write_csv(map: HashMap<RecordKey, RecordValue>, path: &Path) -> Result<(), Bo
     Ok(())
 }
 
-pub fn capture(interface: String, path: &Path) -> Result<(), String> {
-    // Find the network interface with the provided name
-    let interface = interfaces().into_iter()
-        .filter(|i: &NetworkInterface| i.name == interface)
+pub fn get_interfaces() -> Vec<NetworkInterface>{
+    interfaces()
+}
+
+pub fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
+    interfaces().into_iter()
+        .filter(|i: &NetworkInterface| i.name == name)
         .next()
-        .expect("Network interface not found"); // TODO: manage this with errors
+}
 
-    // No need for custom config, promiscuous by default
-    let (_, mut rx) = match channel(&interface, Default::default()) {
-        Ok(Ethernet(tx, rx)) => (tx, rx),
-        Ok(_) => panic!("packetdump: unhandled channel type"), //TODO manage with errors
-        Err(e) => panic!("packetdump: unable to create channel: {}", e),
-    };
-
-    let mut map = HashMap::new();
-
-    // TODO support scheduled file generation and quit. Now capture only first 100 frames for test
-    for _ in 0..100 {
-        match rx.next() {
-            Ok(packet) => {
-                handle_ethernet_frame(&EthernetPacket::new(packet).unwrap(), &mut map);
-            }
-            Err(e) => panic!("packetdump: unable to receive packet: {}", e),
-        }
-    }
-
-    write_csv(map, path).unwrap();
-
-    Ok(())
+pub fn get_interface_by_description(description: &str) -> Option<NetworkInterface> {
+    interfaces().into_iter()
+        .filter(|i: &NetworkInterface| i.description == description)
+        .next()
 }
 
 fn handle_transport_protocol(
