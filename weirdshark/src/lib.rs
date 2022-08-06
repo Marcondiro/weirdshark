@@ -16,9 +16,8 @@ use pnet::packet::udp::UdpPacket;
 use crate::TransportProtocols::{TCP, UDP};
 
 pub mod capturer;
-mod write_scheduler;
-mod filters;
-mod error;
+pub mod filters;
+pub mod error;
 
 //TODO reorganize modules
 
@@ -83,7 +82,7 @@ fn write_csv(map: HashMap<RecordKey, RecordValue>, path: &Path) -> Result<(), Bo
     Ok(())
 }
 
-pub fn get_interfaces() -> Vec<NetworkInterface>{
+pub fn get_interfaces() -> Vec<NetworkInterface> {
     interfaces()
 }
 

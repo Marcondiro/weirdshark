@@ -7,9 +7,10 @@ use pnet::datalink::{channel, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet;
 use crate::{handle_ethernet_frame, write_csv};
-pub use crate::capturer::config::CaptureConfig;
+pub use crate::capturer::builder::CaptureConfig;
 
-pub mod config;
+pub mod builder;
+mod write_scheduler;
 
 pub enum WorkerCommand {
     Start,

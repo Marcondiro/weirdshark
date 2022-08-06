@@ -4,29 +4,23 @@ use std::thread;
 use std::time::Duration;
 use crate::capturer::WorkerCommand;
 
-#[derive(PartialEq)]
-enum WriteSchedulerStatus {
-    Start,
-    Stop,
-}
-
 pub(super) struct WriteScheduler {
-    status: Arc<(Mutex<WriteSchedulerStatus>, Condvar)>,
+    is_running: Arc<(Mutex<bool>, Condvar)>,
 }
 
 impl WriteScheduler {
     pub(super) fn new(interval: Duration, sender: Sender<WorkerCommand>) -> Self {
-        let status = Arc::new((
-            Mutex::new(WriteSchedulerStatus::Stop),
+        let is_running = Arc::new((
+            Mutex::new(false),
             Condvar::new())
         );
 
-        let t_status = status.clone();
+        let t_is_running = is_running.clone();
         thread::spawn(move || {
             loop {
-                let (mutex, condvar) = t_status.as_ref();
-                let guard = mutex.lock().unwrap();
-                let _ = condvar.wait_while(guard, |g| *g != WriteSchedulerStatus::Start).unwrap();
+                let (is_running_mutex, is_running_condvar) = t_is_running.as_ref();
+                let guard = is_running_mutex.lock().unwrap();
+                let _ = is_running_condvar.wait_while(guard, |g| !(*g)).unwrap();
 
                 thread::sleep(interval);
                 match sender.send(WorkerCommand::WriteFile) {
@@ -36,28 +30,28 @@ impl WriteScheduler {
             }
         });
 
-        Self { status }
+        Self { is_running }
     }
 
     pub(super) fn start(&self) {
-        let (mutex, condvar) = self.status.as_ref();
+        let (mutex, condvar) = self.is_running.as_ref();
         let mut guard = mutex.lock().unwrap();
-        if *guard == WriteSchedulerStatus::Start {
+        if *guard {
             panic!("Weirdshark: The file generation scheduler is already running");
         }
 
-        *guard = WriteSchedulerStatus::Start;
+        *guard = true;
         condvar.notify_one();
     }
 
     pub(super) fn stop(&self) {
-        let (mutex, condvar) = self.status.as_ref();
+        let (mutex, condvar) = self.is_running.as_ref();
         let mut guard = mutex.lock().unwrap();
-        if *guard == WriteSchedulerStatus::Stop {
+        if !(*guard) {
             panic!("Weirdshark: The file generation scheduler is already stopped");
         }
 
-        *guard = WriteSchedulerStatus::Stop;
+        *guard = true;
         condvar.notify_one();
     }
 }

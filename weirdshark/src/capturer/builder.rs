@@ -6,14 +6,14 @@ use pnet::datalink;
 use pnet::datalink::NetworkInterface;
 use crate::capturer::{capture_thread_fn, CaptureController};
 use crate::{get_interface_by_description, get_interface_by_name};
-use crate::filters::{IpFilter,DirectionFilter};
+use crate::filters::{IpFilter, DirectionFilter};
 use crate::error::WeirdsharkError;
 
 pub struct CaptureConfig {
     pub(crate) interface: Option<NetworkInterface>,
     pub(crate) report_path: Option<PathBuf>,
     pub(crate) report_interval: Option<time::Duration>,
-    pub(crate) ip_filters: LinkedList<(IpFilter,DirectionFilter)>,
+    pub(crate) ip_filters: LinkedList<(IpFilter, DirectionFilter)>,
     //l3_filters : LinkedList<Filter<Ipv4Packet>>,
     //TODO filters
 }
@@ -49,7 +49,6 @@ fn is_interface_running(_i: &NetworkInterface) -> bool {
 
 impl CaptureConfig {
     pub fn new() -> Self {
-
         Self {
             interface: None,
             report_path: None,
@@ -61,19 +60,19 @@ impl CaptureConfig {
 
     //TODO: add fn set interface by description for windows
 
-    pub fn set_interface_by_name(mut self, name: &str) -> Self {
+    pub fn interface_by_name(mut self, name: &str) -> Self {
         self.interface = get_interface_by_name(name);
         //.expect("Network interface not found"); // TODO: manage this with errors?
         self
     }
 
-    pub fn set_interface_by_description(mut self, name: &str) -> Self {
+    pub fn interface_by_description(mut self, name: &str) -> Self {
         self.interface = get_interface_by_description(name);
         //.expect("Network interface not found"); // TODO: manage this with errors?
         self
     }
 
-    pub fn set_interface_by_index(mut self, index: u32) -> Self {
+    pub fn interface_by_index(mut self, index: u32) -> Self {
         let interface = datalink::interfaces().into_iter()
             .filter(|i| i.index == index)
             .next();
@@ -82,23 +81,23 @@ impl CaptureConfig {
         self
     }
 
-    pub fn set_report_path(mut self, path: PathBuf ) ->Self{
+    pub fn report_path(mut self, path: PathBuf) -> Self {
         self.report_path = Some(path);
         self
     }
 
-    pub fn set_report_interval(mut self, duration: Option<time::Duration>) -> Self {
+    pub fn report_interval(mut self, duration: Option<time::Duration>) -> Self {
         self.report_interval = duration;
         self
     }
 
-    pub fn add_filter_ip_addr(mut self, addr: IpAddr, ) -> Self {
+    pub fn add_filter_ip_addr(mut self, addr: IpAddr) -> Self {
         let filter = IpFilter::Single(addr);
-        self.ip_filters.push_back((filter,DirectionFilter::Both) );
+        self.ip_filters.push_back((filter, DirectionFilter::Both));
         self
     }
 
-    pub fn build_capturer(self) -> Result<CaptureController, WeirdsharkError> {
+    pub fn build(self) -> Result<CaptureController, WeirdsharkError> {
         //TODO: this should check that all Configs are correct
         let (sender, receiver) = std::sync::mpsc::channel();
         let t_sender = sender.clone();
