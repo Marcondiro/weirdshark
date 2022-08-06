@@ -20,13 +20,12 @@ pub enum WorkerCommand {
     HandlePacket(Result<Vec<u8>, std::io::Error>),
 }
 
-pub struct CaptureController {
+pub struct Capturer {
     thread_handle: JoinHandle<()>,
     sender: Sender<WorkerCommand>,
-    //TODO add a status (cannot start if already started)
 }
 
-impl CaptureController {
+impl Capturer {
     pub fn start(&self) {
         //TODO: manager error
         self.sender.send(WorkerCommand::Start).unwrap();
@@ -50,37 +49,50 @@ impl CaptureController {
 }
 
 fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver: Receiver<WorkerCommand>) {
-    // let start_time = Utc::now();
     let mut map = HashMap::new();
-
-    //TODO handle scheduled file generation (time based file generation in a new thread?)
+    let scheduler = match cfg.report_interval {
+        Some(interval) => Some(write_scheduler::WriteScheduler::new(interval, sender.clone())),
+        None => None,
+    };
+    let mut is_paused = false;
+    pnet_capture_adapter(cfg.interface.as_ref().unwrap(), &sender);
 
     loop {
         match receiver.recv() {
-            Ok(WorkerCommand::Start) => {
-                pnet_capture_adapter(cfg.interface.as_ref().unwrap(), &sender);
-            }
-            Ok(WorkerCommand::Pause) => todo!(),
-            Ok(WorkerCommand::Stop) => break,
-            Ok(WorkerCommand::HandlePacket(p)) => {
-                match p {
-                    Ok(packet) => {
-                        //TODO: Proposal: Change this call stack to TCP using IP using layer2 to retrieve a TCP segment A.
-                        handle_ethernet_frame(&ethernet::EthernetPacket::new(&packet).unwrap(), &mut map);
+            Ok(command) =>
+                match command {
+                    WorkerCommand::Start => {
+                        if let Some(s) = &scheduler {
+                            s.start();
+                        }
+                        is_paused = false;
                     }
-                    Err(e) => panic!("packetdump: unable to receive packet: {}", e), //TODO manage with errors
+                    WorkerCommand::Pause => {
+                        if let Some(s) = &scheduler {
+                            s.stop();
+                        }
+                        is_paused = true;
+                    }
+                    WorkerCommand::Stop => break,
+                    WorkerCommand::HandlePacket(p) => {
+                        if is_paused { continue; }
+                        match p {
+                            Ok(packet) => {
+                                //TODO: Proposal: Change this call stack to TCP using IP using layer2 to retrieve a TCP segment A.
+                                handle_ethernet_frame(&ethernet::EthernetPacket::new(&packet).unwrap(), &mut map);
+                            }
+                            Err(e) => panic!("packetdump: unable to receive packet: {}", e), //TODO manage with errors
+                        }
+                    }
+                    WorkerCommand::WriteFile => {
+                        let old_map = mem::take(&mut map);
+                        write_csv(old_map, cfg.report_path.as_ref().unwrap())
+                            .expect("Weirdshark encountered an error while writing the file"); //TODO manage with errors?
+                    }
                 }
-            }
-            Ok(WorkerCommand::WriteFile) => {
-                let old_map = mem::take(&mut map);
-                write_csv(old_map, cfg.report_path.as_ref().unwrap())
-                    .expect("Weirdshark encountered an error while writing the file"); //TODO manage with errors?
-            }
             Err(_) => todo!(),
         };
     }
-
-    drop(receiver);
 }
 
 fn pnet_capture_adapter(interface: &NetworkInterface, sender: &Sender<WorkerCommand>) {
