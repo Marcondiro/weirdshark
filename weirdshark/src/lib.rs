@@ -21,11 +21,7 @@ pub mod error;
 
 //TODO reorganize modules
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-enum TransportProtocols {
-    TCP,
-    UDP,
-}
+
 
 #[derive(Serialize)]
 struct Record {

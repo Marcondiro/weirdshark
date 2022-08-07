@@ -49,6 +49,7 @@ impl Capturer {
 }
 
 fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver: Receiver<WorkerCommand>) {
+    // let start_time = Utc::now();
     let mut map = HashMap::new();
     let scheduler = match cfg.report_interval {
         Some(interval) => Some(write_scheduler::WriteScheduler::new(interval, sender.clone())),
