@@ -10,20 +10,20 @@ pub struct Args {
 
     ///Select the capturing network interface interface by its index
     ///this option overrides any interface_name added
-    #[clap(short = 'i',long)]
+    #[clap(short = 'i', long)]
     pub interface_index: Option<u32>,
 
     ///Select the capturing network interface interface by its description
     ///this option overrides any interface_name added
-    #[clap(short = 'd',long)]
+    #[clap(short = 'd', long)]
     pub interface_desc: Option<String>,
 
     /// Output path, including file name
-    #[clap(short = 'o', long, value_parser, default_value = "weirdshark_capture")]
+    #[clap(short = 'o', long, value_parser, default_value = "./")]
     pub path: String,
 
     /// Print interface list
-    #[clap(short,long)]
+    #[clap(short, long)]
     pub list_interfaces: bool,
 
     /// Time interval in seconds after which a new report is generated

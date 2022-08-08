@@ -82,7 +82,9 @@ impl CapturerWorker {
     }
 
     fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
-        let mut writer = csv::Writer::from_path(self.report_path.as_path())?;
+        let file_name = chrono::Utc::now().to_string() + ".csv"; //TODO manage prefix parameter
+        let path = self.report_path.join(&file_name);
+        let mut writer = csv::Writer::from_path(&path)?;
         let map = mem::take(&mut self.map);
 
         for (k, v) in map.into_iter() {
@@ -95,7 +97,7 @@ impl CapturerWorker {
     }
 
     fn work(mut self) -> JoinHandle<()> {
-        PnetCaptureAdapter::new(&self.interface, self.sender.clone()).capture(); //TODO check and throw eventual errors
+        PnetCaptureAdapter::new(&self.interface, self.get_sender()).capture(); //TODO check and throw eventual errors
         thread::spawn(move ||
             loop {
                 match self.receiver.recv() {

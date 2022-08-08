@@ -7,13 +7,11 @@ mod args;
 
 fn main() {
     let args = args::Args::parse();
-    let path = args.path.clone() + if args.path.ends_with(".csv") { "" } else { ".csv" };
 
     if args.list_interfaces {
         return list_interfaces();
     }
     let mut capturer_cfg = weirdshark::capturer::CaptureConfig::new();
-
 
     if let Some(ref i_name) = args.interface_name {
         //let i_name = args.interface_name.unwrap();
@@ -42,7 +40,7 @@ fn main() {
         return;
     }
 
-    capturer_cfg = capturer_cfg.report_path(PathBuf::from(path));
+    capturer_cfg = capturer_cfg.report_path(PathBuf::from(args.path));
 
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
