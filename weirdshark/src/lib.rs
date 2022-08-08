@@ -1,3 +1,18 @@
+//! # weirdshark
+//!
+//! `weirdshark` is a cross-platform library capable of intercepting incoming and outgoing traffic
+//! through the network interfaces.
+//!
+//! The library allows to collect IP address, port and protocol type of observed traffic and will
+//! generate a **report in csv format**.
+//!
+//! The report lists for each of the network address/port pairs that have been observed, the
+//! protocols that was transported, the cumulated number of bytes transmitted, the timestamp of the first and last occurrence of information exchange.
+//!
+//! Through CapturerBuilder's parameters it is possible to specify the network adapter to be
+//! inspected, the output file to be generated, the time interval after which a new report is
+//! generated and filters to apply to captured data.
+
 use std::collections::HashMap;
 use std::net::IpAddr;
 use serde::Serialize;
@@ -16,8 +31,6 @@ use crate::TransportProtocols::{TCP, UDP};
 pub mod capturer;
 pub mod filters;
 pub mod error;
-
-//TODO reorganize modules
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 enum TransportProtocols {
