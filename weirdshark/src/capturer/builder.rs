@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::time;
 use pnet::datalink;
 use pnet::datalink::NetworkInterface;
-use crate::capturer::{capture_thread_fn, Capturer};
+use crate::capturer::{Capturer, CapturerWorker};
 use crate::{get_interface_by_description, get_interface_by_name};
 use crate::filters::{IpFilter, DirectionFilter};
 use crate::error::WeirdsharkError;
@@ -99,9 +99,13 @@ impl CaptureConfig {
 
     pub fn build(self) -> Result<Capturer, WeirdsharkError> {
         //TODO: this should check that all Configs are correct
-        let (sender, receiver) = std::sync::mpsc::channel();
-        let t_sender = sender.clone();
-        let thread_handle = std::thread::spawn(move || capture_thread_fn(self, t_sender, receiver));
-        Ok(Capturer { sender, thread_handle })
+        let capturer_worker = CapturerWorker::new(
+            &self.interface.unwrap(),
+            self.report_path.unwrap(),
+            self.report_interval,
+        );
+        let worker_sender = capturer_worker.get_sender();
+        let worker_thread_handle = capturer_worker.work();
+        Ok(Capturer { worker_sender, worker_thread_handle })
     }
 }
