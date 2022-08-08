@@ -53,18 +53,35 @@ fn main() {
     };
 
     capturer.start();
+    println!("Capture started");
 
-    let mut buffer = String::new();
-    let stdin = io::stdin(); // We get `Stdin` here.
-    stdin.read_line(&mut buffer).unwrap();
+    loop {
+        let mut buffer = String::new();
+        let stdin = io::stdin();
+        stdin.read_line(&mut buffer).unwrap();
 
+        match buffer.to_lowercase().trim_end() {
+            "start" => {
+                capturer.start();
+                println!("Capture started");
+            }
+            "pause" => {
+                capturer.pause();
+                println!("Capture paused");
+            }
+            "stop" => break,
+            _ => println!("Unknown command."), //TODO add a help command?
+        }
+    }
+
+    println!("Capture stopped");
     capturer.stop();
 }
 
 fn list_interfaces() {
-    let ifaces = weirdshark::get_interfaces();
+    let interfaces = weirdshark::get_interfaces();
     println!("Available interfaces: ");
-    for i in ifaces {
+    for i in interfaces {
         if cfg!(windows) {
             println!("{}:", i.description);
         }
