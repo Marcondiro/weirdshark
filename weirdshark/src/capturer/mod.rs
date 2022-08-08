@@ -3,11 +3,15 @@ use std::collections::HashMap;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{JoinHandle};
-use pnet::datalink::{channel, NetworkInterface};
+use std::path::Path;
+use std::error::Error;
+use std::thread;
+use pnet::datalink::{channel, DataLinkReceiver, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet;
-use crate::{handle_ethernet_frame, write_csv};
+use crate::{Record, RecordKey, RecordValue, handle_ethernet_frame};
 pub use crate::capturer::builder::CaptureConfig;
+
 
 pub mod builder;
 mod write_scheduler;
@@ -55,7 +59,7 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
         None => None,
     };
     let mut is_paused = false;
-    pnet_capture_adapter(cfg.interface.as_ref().unwrap(), &sender);
+    PnetCaptureAdapter::new(cfg.interface.as_ref().unwrap(), &sender).capture();
 
     loop {
         match receiver.recv() {
@@ -86,6 +90,7 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
                     }
                     WorkerCommand::WriteFile => {
                         let old_map = mem::take(&mut map);
+                        assert_eq!(map.len(), 0);
                         write_csv(old_map, cfg.report_path.as_ref().unwrap())
                             .expect("Weirdshark encountered an error while writing the file"); //TODO manage with errors?
                     }
@@ -95,31 +100,48 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
     }
 }
 
-fn pnet_capture_adapter(interface: &NetworkInterface, sender: &Sender<WorkerCommand>) {
-    let t_interface = interface.clone();
-    let t_sender = sender.clone();
-    std::thread::spawn(move || {
-        //TODO: build a pnet config from our config A.
-        //Isn't default ok? M.
-        let (_, mut receiver) = match channel(&t_interface, Default::default()) {
-            Ok(Ethernet(tx, receiver)) => (tx, receiver),
+struct PnetCaptureAdapter {
+    worker_sender: Sender<WorkerCommand>,
+    pnet_receiver: Box<dyn DataLinkReceiver>,
+}
+
+impl PnetCaptureAdapter {
+    fn new(interface: &NetworkInterface, sender: &Sender<WorkerCommand>) -> Self {
+        let worker_sender = sender.clone();
+        let pnet_receiver = match channel(&interface, Default::default()) {
+            Ok(Ethernet(_, receiver)) => receiver,
             Ok(_) => panic!("packetdump: unhandled channel type"), //TODO manage with errors
             Err(e) => panic!("packetdump: unable to create channel: {}", e), //TODO manage with errors
         };
+        Self { worker_sender, pnet_receiver }
+    }
 
-        loop {
-            let packet = WorkerCommand::HandlePacket(
-                match receiver.next() {
-                    Ok(p) => Ok(p.to_vec()),
-                    Err(e) => Err(e),
+    fn capture(mut self) {
+        thread::spawn(move || {
+            loop {
+                let packet = WorkerCommand::HandlePacket(
+                    match self.pnet_receiver.next() {
+                        Ok(p) => Ok(p.to_vec()),
+                        Err(e) => Err(e),
+                    }
+                );
+                match self.worker_sender.send(packet) {
+                    Ok(_) => continue,
+                    Err(_) => break,
                 }
-            );
-            match t_sender.send(packet) {
-                Ok(_) => continue,
-                Err(_) => break,
             }
-        }
-    });
+        });
+    }
 }
 
+fn write_csv(map: HashMap<RecordKey, RecordValue>, path: &Path) -> Result<(), Box<dyn Error>> {
+    let mut writer = csv::Writer::from_path(path)?;
 
+    for (k, v) in map.into_iter() {
+        let record = Record::from_key_value(k, v);
+        writer.serialize(record)?;
+    }
+
+    writer.flush()?;
+    Ok(())
+}

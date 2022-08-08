@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::error::Error;
 use std::net::IpAddr;
-use std::path::Path;
 use serde::Serialize;
 use chrono::{DateTime, Utc};
 
@@ -68,18 +66,6 @@ struct RecordValue {
     bytes: usize,
     first_seen: DateTime<Utc>,
     last_seen: DateTime<Utc>,
-}
-
-fn write_csv(map: HashMap<RecordKey, RecordValue>, path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut writer = csv::Writer::from_path(path)?;
-
-    for (k, v) in map.into_iter() {
-        let record = Record::from_key_value(k, v);
-        writer.serialize(record)?;
-    }
-
-    writer.flush()?;
-    Ok(())
 }
 
 pub fn get_interfaces() -> Vec<NetworkInterface> {
