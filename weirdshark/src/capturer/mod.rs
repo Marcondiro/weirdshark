@@ -11,7 +11,7 @@ use pnet::datalink::{channel, DataLinkReceiver, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet;
 use crate::{Record, RecordKey, RecordValue, handle_ethernet_frame};
-pub use crate::capturer::builder::CaptureConfig;
+pub use crate::capturer::builder::CapturerBuilder;
 use crate::capturer::write_scheduler::WriteScheduler;
 
 
@@ -60,12 +60,13 @@ struct CapturerWorker {
     map: HashMap<RecordKey, RecordValue>,
     report_scheduler: Option<WriteScheduler>,
     report_path: PathBuf,
+    report_name_prefix: String,
     is_paused: bool,
     interface: NetworkInterface,
 }
 
 impl CapturerWorker {
-    fn new(interface: NetworkInterface, report_path: PathBuf, report_interval: Option<Duration>) -> Self {
+    fn new(interface: NetworkInterface, report_path: PathBuf, report_name_prefix: String, report_interval: Option<Duration>) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         let map = HashMap::new();
         let report_scheduler = match report_interval {
@@ -74,7 +75,7 @@ impl CapturerWorker {
         };
         let is_paused = false;
 
-        Self { sender, receiver, map, report_scheduler, report_path, is_paused, interface }
+        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface }
     }
 
     fn get_sender(&self) -> Sender<WorkerCommand> {
@@ -82,7 +83,8 @@ impl CapturerWorker {
     }
 
     fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
-        let file_name = chrono::Utc::now().to_string() + ".csv"; //TODO manage prefix parameter
+        let file_name = self.report_name_prefix.clone() +
+            &chrono::Utc::now().to_string() + ".csv"; //TODO manage prefix parameter
         let path = self.report_path.join(&file_name);
         let mut writer = csv::Writer::from_path(&path)?;
         let map = mem::take(&mut self.map);

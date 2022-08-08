@@ -1,5 +1,4 @@
 use std::io;
-use std::path::PathBuf;
 use clap::{Parser};
 use weirdshark;
 
@@ -11,7 +10,7 @@ fn main() {
     if args.list_interfaces {
         return list_interfaces();
     }
-    let mut capturer_cfg = weirdshark::capturer::CaptureConfig::new();
+    let mut capturer_cfg = weirdshark::capturer::CapturerBuilder::new();
 
     if let Some(ref i_name) = args.interface_name {
         //let i_name = args.interface_name.unwrap();
@@ -40,7 +39,7 @@ fn main() {
         return;
     }
 
-    capturer_cfg = capturer_cfg.report_path(PathBuf::from(args.path));
+    capturer_cfg = capturer_cfg.report_path(args.path.as_ref());
 
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
