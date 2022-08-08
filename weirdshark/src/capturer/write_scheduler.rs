@@ -18,9 +18,11 @@ impl WriteScheduler {
         let t_is_running = is_running.clone();
         thread::spawn(move || {
             loop {
-                let (is_running_mutex, is_running_condvar) = t_is_running.as_ref();
-                let guard = is_running_mutex.lock().unwrap();
-                let _ = is_running_condvar.wait_while(guard, |g| !(*g)).unwrap();
+                {
+                    let (is_running_mutex, is_running_condvar) = t_is_running.as_ref();
+                    let guard = is_running_mutex.lock().unwrap();
+                    let _ = is_running_condvar.wait_while(guard, |g| !(*g)).unwrap();
+                }
 
                 thread::sleep(interval);
                 match sender.send(WorkerCommand::WriteFile) {
@@ -51,7 +53,7 @@ impl WriteScheduler {
             panic!("Weirdshark: The file generation scheduler is already stopped");
         }
 
-        *guard = true;
+        *guard = false;
         condvar.notify_one();
     }
 }
