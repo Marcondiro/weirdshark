@@ -10,10 +10,10 @@ use crate::filters::{IpFilter, DirectionFilter};
 use crate::error::WeirdsharkError;
 
 pub struct CaptureConfig {
-    pub(crate) interface: Option<NetworkInterface>,
-    pub(crate) report_path: Option<PathBuf>,
-    pub(crate) report_interval: Option<time::Duration>,
-    pub(crate) ip_filters: LinkedList<(IpFilter, DirectionFilter)>,
+    interface: Option<NetworkInterface>,
+    report_path: Option<PathBuf>,
+    report_interval: Option<time::Duration>,
+    ip_filters: LinkedList<(IpFilter, DirectionFilter)>,
     //l3_filters : LinkedList<Filter<Ipv4Packet>>,
     //TODO filters
 }
@@ -100,7 +100,7 @@ impl CaptureConfig {
     pub fn build(self) -> Result<Capturer, WeirdsharkError> {
         //TODO: this should check that all Configs are correct
         let capturer_worker = CapturerWorker::new(
-            &self.interface.unwrap(),
+            self.interface.unwrap(),
             self.report_path.unwrap(),
             self.report_interval,
         );

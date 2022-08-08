@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{JoinHandle};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::error::Error;
 use std::thread;
 use std::time::Duration;
@@ -61,11 +61,11 @@ struct CapturerWorker {
     report_scheduler: Option<WriteScheduler>,
     report_path: PathBuf,
     is_paused: bool,
-    pnet_capture_adapter: PnetCaptureAdapter,
+    interface: NetworkInterface,
 }
 
 impl CapturerWorker {
-    fn new(interface: &NetworkInterface, report_path: PathBuf, report_interval: Option<Duration>) -> Self {
+    fn new(interface: NetworkInterface, report_path: PathBuf, report_interval: Option<Duration>) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         let map = HashMap::new();
         let report_scheduler = match report_interval {
@@ -73,9 +73,8 @@ impl CapturerWorker {
             None => None,
         };
         let is_paused = false;
-        let pnet_capture_adapter = PnetCaptureAdapter::new(interface, sender.clone());
 
-        Self { sender, receiver, map, report_scheduler, report_path, is_paused, pnet_capture_adapter }
+        Self { sender, receiver, map, report_scheduler, report_path, is_paused, interface }
     }
 
     fn get_sender(&self) -> Sender<WorkerCommand> {
@@ -96,7 +95,7 @@ impl CapturerWorker {
     }
 
     fn work(mut self) -> JoinHandle<()> {
-        self.pnet_capture_adapter.capture(); //TODO check and throw eventual errors
+        PnetCaptureAdapter::new(&self.interface, self.sender.clone()).capture(); //TODO check and throw eventual errors
         thread::spawn(move ||
             loop {
                 match self.receiver.recv() {
