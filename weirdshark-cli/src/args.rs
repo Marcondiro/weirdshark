@@ -1,20 +1,37 @@
-use clap::Parser;
+use clap::{Parser, Args, Subcommand, ValueEnum, ArgGroup};
 use std::net::IpAddr;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
-pub struct Args {
-    /// Network interface name to capture from
+pub struct Cli {
+    #[clap(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Command {
+    /// List available interfaces
+    Interfaces,
+
+    /// Start a network capture
+    Capture(CaptureParams),
+}
+
+#[derive(Args, Debug)]
+#[clap(group(ArgGroup::new("interface-selector")
+.required(true)
+.args(& ["interface-name", "interface-index", "interface-desc"]),
+))]
+pub struct CaptureParams {
+    /// Name of the network interface to capture from
     #[clap()]
     pub interface_name: Option<String>,
 
-    ///Select the capturing network interface interface by its index
-    ///this option overrides any interface_name added
+    ///Select the capturing network interface by its index
     #[clap(short = 'i', long)]
     pub interface_index: Option<u32>,
 
-    ///Select the capturing network interface interface by its description
-    ///this option overrides any interface_name added
+    ///Select the capturing network interface by its description
     #[clap(short = 'd', long)]
     pub interface_desc: Option<String>,
 
@@ -22,13 +39,9 @@ pub struct Args {
     #[clap(short = 'o', long, default_value = "./")]
     pub path: String,
 
-    /// Print interface list
-    #[clap(short, long)]
-    pub list_interfaces: bool,
-
     /// Time interval in seconds after which a new report is generated
     /// (if not provided, only one report at the end is generated)
-    #[clap(short, long)]
+    #[clap(short, long, value_parser = clap::value_parser ! (u64).range(1..))]
     pub time_interval: Option<u64>,
 
     /// Filter by ip, insert IPs to include in the report
@@ -50,19 +63,19 @@ pub struct Args {
 
     /// Filter by source port, insert the ports to include in the report
     /// Packets which source OR destination port is in the list are recorded
-    #[clap(long, multiple_values = true, value_parser = clap::value_parser ! (u16).range(1..))]
+    #[clap(long, multiple_values = true)]
     pub ports: Vec<u16>,
 
     /// Filter by source port, insert the ports to include in the report
-    #[clap(long, multiple_values = true, value_parser = clap::value_parser ! (u16).range(1..))]
+    #[clap(long, multiple_values = true)]
     pub source_ports: Vec<u16>,
 
     /// Filter by destination port, insert the ports to include in the report
-    #[clap(long, multiple_values = true, value_parser = clap::value_parser ! (u16).range(1..))]
+    #[clap(long, multiple_values = true)]
     pub destination_ports: Vec<u16>,
 }
 
-#[derive(clap::ValueEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug)]
 pub enum TransportProtocol {
     TCP,
     UDP,

@@ -1,42 +1,44 @@
 use std::io;
 use clap::{Parser};
 use weirdshark;
+use crate::args::CaptureParams;
 
 mod args;
 
 fn main() {
-    let args = args::Args::parse();
+    let args = args::Cli::parse();
 
-    if args.list_interfaces {
-        return list_interfaces();
+    match args.command {
+        args::Command::Interfaces => list_interfaces(),
+        args::Command::Capture(params) => capture(params),
     }
+}
+
+fn list_interfaces() {
+    let interfaces = weirdshark::get_interfaces();
+    println!("Available interfaces: ");
+    for i in interfaces {
+        if cfg!(windows) {
+            println!("{}:", i.description);
+        }
+        println!("{}", i);
+    }
+    return;
+}
+
+fn capture(args: CaptureParams) {
     let mut capturer_cfg = weirdshark::capturer::CapturerBuilder::new();
 
-    if let Some(ref i_name) = args.interface_name {
-        //let i_name = args.interface_name.unwrap();
-        //interface = weirdshark::get_interface_by_name(i_name);
-        capturer_cfg = capturer_cfg.interface_by_name(&i_name);
-    }
-
-    if let Some(ref interface_desc) = args.interface_desc {
-        //let i_name = args.interface_name.unwrap();
-        //interface = weirdshark::get_interface_by_name(i_name);
-        capturer_cfg = capturer_cfg.interface_by_description(&interface_desc);
-    }
-
-    if let Some(interface_index) = args.interface_index {
+    if let Some(i_name) = &args.interface_name {
+        capturer_cfg = capturer_cfg.interface_by_name(i_name);
+    } else if let Some(interface_desc) = &args.interface_desc {
+        capturer_cfg = capturer_cfg.interface_by_description(interface_desc);
+    } else if let Some(interface_index) = args.interface_index {
         capturer_cfg = capturer_cfg.interface_by_index(interface_index);
     }
 
     if let Some(time_interval) = args.time_interval {
         capturer_cfg = capturer_cfg.report_interval(Some(std::time::Duration::from_secs(time_interval)));
-    }
-
-    if args.interface_name.is_none() && args.interface_index.is_none() && args.interface_desc.is_none() {
-        eprintln!("To start a capture you need to provide a network interface");
-        println!("To see a list of the available network intefaces run weirdshark-cli -l");
-        println!("For any other information run weirdshark-cli -h");
-        return;
     }
 
     capturer_cfg = capturer_cfg.report_path(args.path.as_ref());
@@ -50,7 +52,7 @@ fn main() {
     };
 
     capturer.start();
-    println!("Capture started");
+    println!("Capture started"); //TODO print instructions
 
     loop {
         let mut buffer = String::new();
@@ -73,16 +75,4 @@ fn main() {
 
     println!("Capture stopped");
     capturer.stop();
-}
-
-fn list_interfaces() {
-    let interfaces = weirdshark::get_interfaces();
-    println!("Available interfaces: ");
-    for i in interfaces {
-        if cfg!(windows) {
-            println!("{}:", i.description);
-        }
-        println!("{}", i);
-    }
-    return;
 }
