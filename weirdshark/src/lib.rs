@@ -15,7 +15,6 @@ pub mod error;
 //TODO reorganize modules
 
 
-
 #[derive(Serialize)]
 struct Record {
     source_ip: IpAddr,

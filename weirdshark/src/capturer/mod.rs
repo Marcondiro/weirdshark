@@ -81,7 +81,7 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
                         match p {
                             Ok(data) => {
                                 let parse_res = parser::parse_transport_packet(data);
-                                if let Ok(packet_info) = parse_res{
+                                if let Ok(packet_info) = parse_res {
                                     let k = RecordKey {
                                         source_ip: packet_info.source_ip,
                                         destination_ip: packet_info.destination_ip,
@@ -91,7 +91,7 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
                                     };
                                     let now = Utc::now();
                                     map.entry(k)
-                                        .and_modify(|v:&mut RecordValue| {
+                                        .and_modify(|v: &mut RecordValue| {
                                             v.bytes += packet_info.bytes;
                                             v.last_seen = now;
                                         })

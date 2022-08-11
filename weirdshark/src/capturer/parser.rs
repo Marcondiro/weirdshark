@@ -29,7 +29,7 @@ struct InternetPacket {
     source: IpAddr,
     destination: IpAddr,
     next_protocol: TransportProtocols,
-    payload:  Vec<u8>,
+    payload: Vec<u8>,
 }
 
 pub struct TransportPacket {
@@ -39,11 +39,10 @@ pub struct TransportPacket {
     pub(crate) source_port: u16,
     pub(crate) destination_port: u16,
     pub(crate) bytes: usize,
-    //ethernet_packet: EthernetPacket,
 }
 
 pub fn parse_transport_packet(data: Vec<u8>) -> Result<TransportPacket, WeirdsharkError> {
-    use TransportProtocols::{TCP,UDP};
+    use TransportProtocols::{TCP, UDP};
     let ethernet = parse_ethernet_frame(data)?;
 
     let internet_packet = parse_internet_packet(&ethernet)?;
@@ -57,29 +56,30 @@ pub fn parse_transport_packet(data: Vec<u8>) -> Result<TransportPacket, Weirdsha
         UDP => {
             let transport_packet = parse_udp_packet(&internet_packet.payload)?;
             (transport_packet.get_source(), transport_packet.get_destination())
-        },
+        }
     };
-    Ok(TransportPacket{
-        source_ip:internet_packet.source,
-        destination_ip:internet_packet.destination,
-        transport_protocol:internet_packet.next_protocol,
+    Ok(TransportPacket {
+        source_ip: internet_packet.source,
+        destination_ip: internet_packet.destination,
+        transport_protocol: internet_packet.next_protocol,
         source_port,
         destination_port,
-        bytes
+        bytes,
     })
 }
 
-fn parse_ethernet_frame(data: Vec<u8>) -> Result<EthernetPacket<'static>, WeirdsharkError>{
+fn parse_ethernet_frame(data: Vec<u8>) -> Result<EthernetPacket<'static>, WeirdsharkError> {
     let eth = EthernetPacket::owned(data);
     return match eth {
         Some(frame) => Ok(frame),
         None => Err(WeirdsharkError::IncompleteEthernetFrame),
-    }
+    };
 }
-fn parse_internet_packet<'p,'b>(ethernet: &'p EthernetPacket) -> Result<InternetPacket, WeirdsharkError> {
+
+fn parse_internet_packet<'p, 'b>(ethernet: &'p EthernetPacket) -> Result<InternetPacket, WeirdsharkError> {
     let (ip_version, source, destination, next_level_protocol, payload) = match ethernet.get_ethertype() {
         EtherTypes::Ipv4 => {
-            let ip_packet= parse_ipv4_packet(ethernet)?;
+            let ip_packet = parse_ipv4_packet(ethernet)?;
             let source = IpAddr::from(ip_packet.get_source());
             let destination = IpAddr::from(ip_packet.get_destination());
             let next_protocol = ip_packet.get_next_level_protocol();
@@ -127,16 +127,16 @@ fn parse_ipv6_packet<'p>(ethernet: &'p EthernetPacket<'p>) -> Result<Ipv6Packet<
     };
 }
 
-fn parse_tcp_packet(data: &[u8]) -> Result<TcpPacket,WeirdsharkError>{
+fn parse_tcp_packet(data: &[u8]) -> Result<TcpPacket, WeirdsharkError> {
     return match TcpPacket::new(data) {
         Some(segment) => Ok(segment),
-        None=> Err(IncompleteTcpSegment),
-    }
+        None => Err(IncompleteTcpSegment),
+    };
 }
 
-fn parse_udp_packet(data: &[u8]) -> Result<UdpPacket,WeirdsharkError>{
+fn parse_udp_packet(data: &[u8]) -> Result<UdpPacket, WeirdsharkError> {
     return match UdpPacket::new(data) {
         Some(segment) => Ok(segment),
-        None=> Err(IncompleteTcpSegment),
-    }
+        None => Err(IncompleteTcpSegment),
+    };
 }
