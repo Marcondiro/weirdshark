@@ -27,7 +27,8 @@ fn list_interfaces() {
 }
 
 fn capture(args: CaptureParams) {
-    let mut capturer_cfg = weirdshark::capturer::CapturerBuilder::new();
+    let mut capturer_cfg = weirdshark::capturer::CapturerBuilder::new()
+        .report_path(args.path.as_ref());
 
     if let Some(i_name) = &args.interface_name {
         capturer_cfg = capturer_cfg.interface_by_name(i_name);
@@ -35,13 +36,13 @@ fn capture(args: CaptureParams) {
         capturer_cfg = capturer_cfg.interface_by_description(interface_desc);
     } else if let Some(interface_index) = args.interface_index {
         capturer_cfg = capturer_cfg.interface_by_index(interface_index);
+    } else {
+        unreachable!();
     }
 
     if let Some(time_interval) = args.time_interval {
         capturer_cfg = capturer_cfg.report_interval(Some(std::time::Duration::from_secs(time_interval)));
     }
-
-    capturer_cfg = capturer_cfg.report_path(args.path.as_ref());
 
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
@@ -52,7 +53,8 @@ fn capture(args: CaptureParams) {
     };
 
     capturer.start();
-    println!("Capture started"); //TODO print instructions
+    println!("Capture started");
+    print_capture_help();
 
     loop {
         let mut buffer = String::new();
@@ -69,10 +71,21 @@ fn capture(args: CaptureParams) {
                 println!("Capture paused");
             }
             "stop" => break,
-            _ => println!("Unknown command."), //TODO add a help command?
+            "help" => print_capture_help(),
+            _ => println!("Unknown command. Type `help` for a list of valid commands."),
         }
     }
 
     println!("Capture stopped");
     capturer.stop();
+}
+
+fn print_capture_help() {
+    let msg =
+        "Valid commands:\n\
+        \tstart\tResume the capture after a pause\n\
+        \tpause\tPause the capture\n\
+        \tstop\tTerminate the capture, save the report and then terminate the program\n\
+        \thelp\tPrint this help message\n";
+    println!("{}", msg);
 }
