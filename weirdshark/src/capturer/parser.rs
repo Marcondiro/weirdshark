@@ -25,7 +25,7 @@ enum InternetProtocol {
 }
 
 struct InternetPacket {
-    ip_version: InternetProtocol,
+    _ip_version: InternetProtocol,
     source: IpAddr,
     destination: IpAddr,
     next_protocol: TransportProtocols,
@@ -103,7 +103,7 @@ fn parse_internet_packet<'p,'b>(ethernet: &'p EthernetPacket) -> Result<Internet
         _ => return Err(WeirdsharkError::UnsupportedTransportProtocol),
     };
     Ok(InternetPacket {
-        ip_version,
+        _ip_version: ip_version,
         source,
         destination,
         next_protocol,
