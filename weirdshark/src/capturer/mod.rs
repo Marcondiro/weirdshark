@@ -5,12 +5,13 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{JoinHandle};
 use pnet::datalink::{channel, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
-use pnet::packet::ethernet;
-use crate::{handle_ethernet_frame, write_csv};
+use crate::{write_csv, RecordKey, RecordValue};
 pub use crate::capturer::builder::CaptureConfig;
+use chrono::Utc;
 
 pub mod builder;
 mod write_scheduler;
+pub mod parser;
 
 pub enum WorkerCommand {
     Start,
@@ -78,9 +79,24 @@ fn capture_thread_fn(cfg: CaptureConfig, sender: Sender<WorkerCommand>, receiver
                     WorkerCommand::HandlePacket(p) => {
                         if is_paused { continue; }
                         match p {
-                            Ok(packet) => {
-                                //TODO: Proposal: Change this call stack to TCP using IP using layer2 to retrieve a TCP segment A.
-                                handle_ethernet_frame(&ethernet::EthernetPacket::new(&packet).unwrap(), &mut map);
+                            Ok(data) => {
+                                let parse_res = parser::parse_transport_packet(data);
+                                if let Ok(packet_info) = parse_res{
+                                    let k = RecordKey {
+                                        source_ip: packet_info.source_ip,
+                                        destination_ip: packet_info.destination_ip,
+                                        transport_protocol: packet_info.transport_protocol,
+                                        source_port: packet_info.source_port,
+                                        destination_port: packet_info.destination_port,
+                                    };
+                                    let now = Utc::now();
+                                    map.entry(k)
+                                        .and_modify(|v:&mut RecordValue| {
+                                            v.bytes += packet_info.bytes;
+                                            v.last_seen = now;
+                                        })
+                                        .or_insert(RecordValue { bytes: packet_info.bytes, first_seen: now, last_seen: now });
+                                }
                             }
                             Err(e) => panic!("packetdump: unable to receive packet: {}", e), //TODO manage with errors
                         }
