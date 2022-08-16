@@ -6,7 +6,7 @@ use pnet::datalink;
 use pnet::datalink::NetworkInterface;
 use crate::capturer::{Capturer, CapturerWorker};
 use crate::{get_interface_by_description, get_interface_by_name};
-use crate::filters::{IpFilter, DirectionFilter};
+use crate::filters::{Filter, DirectedFilter};
 use crate::error::WeirdsharkError;
 
 pub struct CapturerBuilder {
@@ -14,7 +14,7 @@ pub struct CapturerBuilder {
     report_path: PathBuf,
     report_name_prefix: String,
     report_interval: Option<time::Duration>,
-    ip_filters: LinkedList<(IpFilter, DirectionFilter)>,
+    ip_filters: LinkedList<DirectedFilter<IpAddr>>,
     //l3_filters : LinkedList<Filter<Ipv4Packet>>,
     //TODO filters
 }
@@ -50,7 +50,6 @@ impl CapturerBuilder {
             report_name_prefix: "weirdshark_capture".to_string(),
             report_interval: None,
             ip_filters: LinkedList::new(),
-            //l3_filters : LinkedList::new(),
         }
     }
 
@@ -92,9 +91,13 @@ impl CapturerBuilder {
         self
     }
 
-    pub fn add_filter_ip_addr(mut self, addr: IpAddr) -> Self {
-        let filter = IpFilter::Single(addr);
-        self.ip_filters.push_back((filter, DirectionFilter::Both));
+    pub fn add_directed_filter_ip(mut self, filter: DirectedFilter<IpAddr>) -> Self {
+        self.ip_filters.push_back(filter);
+        self
+    }
+
+    pub fn add_undirected_filter_ip(mut self, filter: Filter<IpAddr>) -> Self {
+        self.ip_filters.push_back(DirectedFilter::Both(filter));
         self
     }
 
@@ -108,6 +111,7 @@ impl CapturerBuilder {
             self.report_path,
             self.report_name_prefix,
             self.report_interval,
+            self.ip_filters
         );
         let worker_sender = capturer_worker.get_sender();
         let worker_thread_handle = capturer_worker.work();

@@ -9,9 +9,6 @@ pub mod capturer;
 pub mod filters;
 pub mod error;
 
-//TODO reorganize modules
-
-
 #[derive(Serialize)]
 struct Record {
     source_ip: IpAddr,

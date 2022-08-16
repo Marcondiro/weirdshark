@@ -43,7 +43,9 @@ fn capture(args: CaptureParams) {
     if let Some(time_interval) = args.time_interval {
         capturer_cfg = capturer_cfg.report_interval(Some(std::time::Duration::from_secs(time_interval)));
     }
-
+    if ! args.ips.is_empty(){
+        println!("{:#?}",args.ips);
+    }
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
         Err(err) => {

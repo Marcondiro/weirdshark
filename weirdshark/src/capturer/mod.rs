@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::collections::LinkedList;
 
 use std::mem;
+use std::net::IpAddr;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{JoinHandle};
 use std::path::PathBuf;
@@ -13,6 +15,7 @@ use crate::{Record, RecordKey, RecordValue};
 pub use crate::capturer::builder::CapturerBuilder;
 use crate::capturer::write_scheduler::WriteScheduler;
 use crate::error::WeirdsharkError;
+use crate::filters::{DirectedFilter};
 
 
 pub mod builder;
@@ -64,10 +67,11 @@ struct CapturerWorker {
     report_name_prefix: String,
     is_paused: bool,
     interface: NetworkInterface,
+    ip_filters: LinkedList<DirectedFilter<IpAddr>>,
 }
 
 impl CapturerWorker {
-    fn new(interface: NetworkInterface, report_path: PathBuf, report_name_prefix: String, report_interval: Option<Duration>) -> Self {
+    fn new(interface: NetworkInterface, report_path: PathBuf, report_name_prefix: String, report_interval: Option<Duration>, ip_filters: LinkedList<DirectedFilter<IpAddr>>) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         let map = HashMap::new();
         let report_scheduler = match report_interval {
@@ -76,7 +80,7 @@ impl CapturerWorker {
         };
         let is_paused = false;
 
-        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface }
+        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface, ip_filters }
     }
 
     fn get_sender(&self) -> Sender<WorkerCommand> {
@@ -85,14 +89,14 @@ impl CapturerWorker {
 
     fn write_csv(&mut self) -> Result<(), WeirdsharkError> {
         let file_name = (self.report_name_prefix.clone() +
-            &chrono::Utc::now().to_string() ).replace(":", "-").replace(".","_")+
+            &Utc::now().to_string()).replace(":", "-").replace(".", "_") +
             ".csv"; //TODO: manage prefix parameter
         let path = self.report_path.join(&file_name);
-        let mut writer = match csv::Writer::from_path(&path){
+        let mut writer = match csv::Writer::from_path(&path) {
             Ok(writer) => writer,
-            Err(os_err)=>{
+            Err(os_err) => {
                 let path_str = path.to_str().unwrap();
-                let err = format!("Cannot write to : {} for \n{}", path_str,os_err);
+                let err = format!("Cannot write to : {} for \n{}", path_str, os_err);
                 return Err(WeirdsharkError::WriteError(err));
             }
         };
@@ -100,15 +104,15 @@ impl CapturerWorker {
 
         for (k, v) in map.into_iter() {
             let record = Record::from_key_value(k, v);
-            match writer.serialize(record){
+            match writer.serialize(record) {
                 Ok(()) => (),
-                Err(error) => return Err(WeirdsharkError::SerializeError(format!("{}",error)))
+                Err(error) => return Err(WeirdsharkError::SerializeError(format!("{}", error)))
             };
         }
 
-        match writer.flush(){
+        match writer.flush() {
             Ok(()) => (),
-            Err(error) => return Err(WeirdsharkError::IoError(format!("{}",error)))
+            Err(error) => return Err(WeirdsharkError::IoError(format!("{}", error)))
         };
         Ok(())
     }
@@ -139,6 +143,13 @@ impl CapturerWorker {
                                     Ok(data) => {
                                         let parse_res = parser::parse_transport_packet(data);
                                         if let Ok(packet_info) = parse_res {
+                                            if !self.ip_filters.is_empty(){
+                                                if !self.ip_filters.iter().any(|filter|{
+                                                    filter.filter(&packet_info.source_ip,&packet_info.destination_ip)
+                                                }) {
+                                                    continue;
+                                                }
+                                            }
                                             let k = RecordKey {
                                                 source_ip: packet_info.source_ip,
                                                 destination_ip: packet_info.destination_ip,
@@ -146,6 +157,7 @@ impl CapturerWorker {
                                                 source_port: packet_info.source_port,
                                                 destination_port: packet_info.destination_port,
                                             };
+
                                             let now = Utc::now();
                                             self.map.entry(k)
                                                 .and_modify(|v: &mut RecordValue| {
