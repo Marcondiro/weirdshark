@@ -24,12 +24,22 @@ impl Default for CapturerBuilder {
         let interface = datalink::interfaces().into_iter()
             .filter(|i| !i.is_loopback()
                 && i.is_up()
-                && if cfg!(unix) { i.is_running() } else { true } // is_running available only under unix
+                && is_interface_running(i) // is_running available only under unix
                 && !i.ips.is_empty())
             .next()
             .expect("Weirdshark cannot find a default interface.");
         CapturerBuilder::new().interface(interface)
     }
+}
+
+#[cfg(unix)]
+fn is_interface_running(i: &NetworkInterface) -> bool {
+    i.is_running()
+}
+
+#[cfg(not(unix))]
+fn is_interface_running(_i: &NetworkInterface) -> bool {
+    return true;
 }
 
 impl CapturerBuilder {
