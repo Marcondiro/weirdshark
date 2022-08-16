@@ -7,4 +7,7 @@ pub enum WeirdsharkError {
     IncompleteIpPacket,
     IncompleteTcpSegment,
     UnsupportedTransportProtocol,
+    WriteError(String),
+    SerializeError(String),
+    IoError(String),
 }

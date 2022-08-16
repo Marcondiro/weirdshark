@@ -4,7 +4,6 @@ use std::mem;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{JoinHandle};
 use std::path::PathBuf;
-use std::error::Error;
 use std::thread;
 use std::time::Duration;
 use chrono::Utc;
@@ -13,6 +12,7 @@ use pnet::datalink::Channel::Ethernet;
 use crate::{Record, RecordKey, RecordValue};
 pub use crate::capturer::builder::CapturerBuilder;
 use crate::capturer::write_scheduler::WriteScheduler;
+use crate::error::WeirdsharkError;
 
 
 pub mod builder;
@@ -83,19 +83,33 @@ impl CapturerWorker {
         self.sender.clone()
     }
 
-    fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
-        let file_name = self.report_name_prefix.clone() +
-            &chrono::Utc::now().to_string() + ".csv"; //TODO manage prefix parameter
+    fn write_csv(&mut self) -> Result<(), WeirdsharkError> {
+        let file_name = (self.report_name_prefix.clone() +
+            &chrono::Utc::now().to_string() ).replace(":", "-").replace(".","_")+
+            ".csv"; //TODO: manage prefix parameter
         let path = self.report_path.join(&file_name);
-        let mut writer = csv::Writer::from_path(&path)?;
+        let mut writer = match csv::Writer::from_path(&path){
+            Ok(writer) => writer,
+            Err(os_err)=>{
+                let path_str = path.to_str().unwrap();
+                let err = format!("Cannot write to : {} for \n{}", path_str,os_err);
+                return Err(WeirdsharkError::WriteError(err));
+            }
+        };
         let map = mem::take(&mut self.map);
 
         for (k, v) in map.into_iter() {
             let record = Record::from_key_value(k, v);
-            writer.serialize(record)?;
+            match writer.serialize(record){
+                Ok(()) => (),
+                Err(error) => return Err(WeirdsharkError::SerializeError(format!("{}",error)))
+            };
         }
 
-        writer.flush()?;
+        match writer.flush(){
+            Ok(()) => (),
+            Err(error) => return Err(WeirdsharkError::IoError(format!("{}",error)))
+        };
         Ok(())
     }
 
