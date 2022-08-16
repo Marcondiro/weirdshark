@@ -33,12 +33,12 @@ struct InternetPacket {
 }
 
 pub struct TransportPacket {
-    pub(crate) source_ip: IpAddr,
-    pub(crate) destination_ip: IpAddr,
-    pub(crate) transport_protocol: TransportProtocols,
-    pub(crate) source_port: u16,
-    pub(crate) destination_port: u16,
-    pub(crate) bytes: usize,
+    pub(super) source_ip: IpAddr,
+    pub(super) destination_ip: IpAddr,
+    pub(super) transport_protocol: TransportProtocols,
+    pub(super) source_port: u16,
+    pub(super) destination_port: u16,
+    pub(super) bytes: usize,
 }
 
 pub fn parse_transport_packet(data: Vec<u8>) -> Result<TransportPacket, WeirdsharkError> {
