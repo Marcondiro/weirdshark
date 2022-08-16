@@ -1,9 +1,12 @@
 use std::io;
+use std::net::IpAddr;
 use clap::{Parser};
 use weirdshark;
+use weirdshark::{DirectedFilter, Filter};
 use crate::args::CaptureParams;
 
 mod args;
+mod tuple2;
 
 fn main() {
     let args = args::Cli::parse();
@@ -43,9 +46,48 @@ fn capture(args: CaptureParams) {
     if let Some(time_interval) = args.time_interval {
         capturer_cfg = capturer_cfg.report_interval(Some(std::time::Duration::from_secs(time_interval)));
     }
-    if ! args.ips.is_empty(){
-        println!("{:#?}",args.ips);
+
+    if !args.ips.is_empty() {
+        capturer_cfg = capturer_cfg.add_undirected_filter_ip(weirdshark::Filter::from_vec(args.ips));
     }
+
+    if !args.source_ips.is_empty() {
+        let filter = weirdshark::Filter::from_vec(args.source_ips);
+        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_source(filter));
+    }
+
+    if !args.destination_ips.is_empty() {
+        let filter = weirdshark::Filter::from_vec(args.destination_ips);
+        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_destination(filter));
+    }
+
+    if !args.ip_range.is_empty() {
+        let vec : Vec<Filter<IpAddr>>  = args.ip_range.into_iter()
+            .map(|tuple|{Filter::from_range(tuple._0,tuple._1)})
+            .collect();
+        for filter in vec {
+            capturer_cfg = capturer_cfg.add_undirected_filter_ip(filter);
+        }
+    }
+
+    if !args.source_ip_range.is_empty() {
+        let vec : Vec<Filter<IpAddr>>  = args.source_ip_range.into_iter()
+            .map(|tuple|{Filter::from_range(tuple._0,tuple._1)})
+            .collect();
+        for filter in vec {
+            capturer_cfg = capturer_cfg.add_directed_filter_ip(DirectedFilter::only_source(filter));
+        }
+    }
+
+    if !args.destination_ip_range.is_empty() {
+        let vec : Vec<Filter<IpAddr>>  = args.destination_ip_range.into_iter()
+            .map(|tuple|{Filter::from_range(tuple._0,tuple._1)})
+            .collect();
+        for filter in vec {
+            capturer_cfg = capturer_cfg.add_directed_filter_ip(DirectedFilter::only_destination(filter));
+        }
+    }
+
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
         Err(err) => {

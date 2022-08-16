@@ -1,3 +1,4 @@
+//TODO: let only visible from outside Filter, but not inner keys
 pub enum Filter<T> {
     Single(T),
     Range(T, T),

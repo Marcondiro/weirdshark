@@ -1,8 +1,8 @@
 use std::net::IpAddr;
 use serde::Serialize;
 use chrono::{DateTime, Utc};
-
-pub use pnet::datalink::{interfaces, NetworkInterface, channel};
+use pnet::datalink::interfaces;
+pub use pnet::datalink::{NetworkInterface};
 use crate::capturer::parser::TransportProtocols;
 
 pub mod capturer;

@@ -1,5 +1,6 @@
 use clap::{Parser, Args, Subcommand, ValueEnum, ArgGroup};
 use std::net::IpAddr;
+use crate::tuple2;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -36,7 +37,7 @@ pub struct CaptureParams {
     pub interface_desc: Option<String>,
 
     /// Output path, including file name
-    #[clap(short = 'o', long, default_value = "./")]
+    #[clap(short = 'o', long, default_value = "./captures")]
     pub path: String,
 
     /// Time interval in seconds after which a new report is generated
@@ -56,6 +57,19 @@ pub struct CaptureParams {
     /// Filter by destination ip, insert IPs to include in the report
     #[clap(long, multiple_values = true)]
     pub destination_ips: Vec<IpAddr>,
+
+    /// Filter by ip, insert IP range to include in the report
+    /// Packets which source OR destination IP is in the range are recorded
+    #[clap(long, multiple_values = true)]
+    pub ip_range: Vec<tuple2::Tuple2<IpAddr>>,
+
+    /// Filter by source ip, insert IP range to include in the report
+    #[clap(long, multiple_values = true)]
+    pub source_ip_range: Vec<tuple2::Tuple2<IpAddr>>,
+
+    /// Filter by destination ip, insert IP range to include in the report
+    #[clap(long, multiple_values = true)]
+    pub destination_ip_range: Vec<tuple2::Tuple2<IpAddr>>,
 
     /// Filter by transport protocol
     #[clap(long, value_enum)]
