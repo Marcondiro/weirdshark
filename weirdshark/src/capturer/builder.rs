@@ -5,7 +5,7 @@ use std::time;
 use pnet::datalink;
 use pnet::datalink::NetworkInterface;
 use crate::capturer::{Capturer, CapturerWorker};
-use crate::{get_interface_by_description, get_interface_by_name};
+use crate::{get_interface_by_description, get_interface_by_name, TransportProtocols};
 use crate::filters::{Filter, DirectedFilter};
 use crate::error::WeirdsharkError;
 
@@ -16,7 +16,7 @@ pub struct CapturerBuilder {
     report_interval: Option<time::Duration>,
     ip_filters: LinkedList<DirectedFilter<IpAddr>>,
     port_filters: LinkedList<DirectedFilter<u16>>,
-    //TODO filters
+    transport_protocol: Option<TransportProtocols>,
 }
 
 impl Default for CapturerBuilder {
@@ -51,6 +51,7 @@ impl CapturerBuilder {
             report_interval: None,
             ip_filters: LinkedList::new(),
             port_filters: LinkedList::new(),
+            transport_protocol: None,
         }
     }
 
@@ -112,9 +113,14 @@ impl CapturerBuilder {
         self
     }
 
+    pub fn add_transport_protocol_filter(mut self, transport_protocol: Option<TransportProtocols>) -> Self {
+        self.transport_protocol = transport_protocol;
+        self
+    }
+
     pub fn build(self) -> Result<Capturer, WeirdsharkError> {
         if self.interface.is_none() {
-            return Err(WeirdsharkError::GenericError); //TODO refine error ?
+            return Err(WeirdsharkError::InterfaceNotSpecified);
         }
 
         let capturer_worker = CapturerWorker::new(
@@ -124,6 +130,7 @@ impl CapturerBuilder {
             self.report_interval,
             self.ip_filters,
             self.port_filters,
+            self.transport_protocol,
         );
         let worker_sender = capturer_worker.get_sender();
         let worker_thread_handle = capturer_worker.work();

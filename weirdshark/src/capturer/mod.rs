@@ -11,7 +11,7 @@ use std::time::Duration;
 use chrono::Utc;
 use pnet::datalink::{channel, DataLinkReceiver, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
-use crate::{Record, RecordKey, RecordValue};
+use crate::{Record, RecordKey, RecordValue, TransportProtocols};
 pub use crate::capturer::builder::CapturerBuilder;
 use crate::capturer::write_scheduler::WriteScheduler;
 use crate::error::WeirdsharkError;
@@ -69,19 +69,27 @@ struct CapturerWorker {
     interface: NetworkInterface,
     ip_filters: LinkedList<DirectedFilter<IpAddr>>,
     port_filters: LinkedList<DirectedFilter<u16>>,
+    protocol_filter: Option<TransportProtocols>,
 }
 
 impl CapturerWorker {
-    fn new(interface: NetworkInterface, report_path: PathBuf, report_name_prefix: String, report_interval: Option<Duration>, ip_filters: LinkedList<DirectedFilter<IpAddr>>,  port_filters: LinkedList<DirectedFilter<u16>>, ) -> Self {
+    fn new(interface: NetworkInterface,
+           report_path: PathBuf,
+           report_name_prefix: String,
+           report_interval: Option<Duration>,
+           ip_filters: LinkedList<DirectedFilter<IpAddr>>,
+           port_filters: LinkedList<DirectedFilter<u16>>,
+            protocol_filter : Option<TransportProtocols>,
+    ) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         let map = HashMap::new();
         let report_scheduler = match report_interval {
-            Some(interval) => Some(write_scheduler::WriteScheduler::new(interval, sender.clone())),
+            Some(interval) => Some(WriteScheduler::new(interval, sender.clone())),
             None => None,
         };
         let is_paused = false;
 
-        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface, ip_filters, port_filters }
+        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface, ip_filters, port_filters, protocol_filter }
     }
 
     fn get_sender(&self) -> Sender<WorkerCommand> {
@@ -158,6 +166,11 @@ impl CapturerWorker {
                                                 }) {
                                                     continue;
                                                 }
+                                            }
+
+                                            match self.protocol_filter {
+                                                Some(protcol) => if protcol != packet_info.transport_protocol {continue}
+                                                None => (),
                                             }
 
                                             let k = RecordKey {

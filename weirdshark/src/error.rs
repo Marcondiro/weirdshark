@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum WeirdsharkError {
     GenericError,
+    InterfaceNotSpecified,
     PacketIgnored,
     PacketIgnoredNonIp,
     IncompleteEthernetFrame,

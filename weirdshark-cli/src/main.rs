@@ -2,7 +2,8 @@ use std::io;
 use std::net::IpAddr;
 use clap::{Parser};
 use weirdshark;
-use crate::args::CaptureParams;
+use weirdshark::capturer::parser::TransportProtocols;
+use crate::args::{CaptureParams, TransportProtocol};
 
 mod args;
 mod tuple2;
@@ -127,6 +128,16 @@ fn capture(args: CaptureParams) {
             capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_destination(filter));
         }
     }
+
+    let protocol_filter :Option<TransportProtocols> = if let Some(TransportProtocol::TCP) = args.transport_protocol {
+        Some(TransportProtocols::TCP)
+    } else if let Some(TransportProtocol::UDP) = args.transport_protocol {
+        Some(TransportProtocols::UDP)
+    } else {
+        None
+    };
+
+    capturer_cfg = capturer_cfg.add_transport_protocol_filter(protocol_filter);
 
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
