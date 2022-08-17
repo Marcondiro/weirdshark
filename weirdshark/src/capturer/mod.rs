@@ -144,7 +144,7 @@ impl CapturerWorker {
                                         let parse_res = parser::parse_transport_packet(data);
                                         if let Ok(packet_info) = parse_res {
                                             if !self.ip_filters.is_empty(){
-                                                if !self.ip_filters.iter().any(|filter|{
+                                                if !self.ip_filters.iter().any(|filter: &DirectedFilter<IpAddr>|{
                                                     filter.filter(&packet_info.source_ip,&packet_info.destination_ip)
                                                 }) {
                                                     continue;

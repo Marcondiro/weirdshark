@@ -2,7 +2,6 @@ use std::io;
 use std::net::IpAddr;
 use clap::{Parser};
 use weirdshark;
-use weirdshark::{DirectedFilter, Filter};
 use crate::args::CaptureParams;
 
 mod args;
@@ -48,22 +47,22 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.ips.is_empty() {
-        capturer_cfg = capturer_cfg.add_undirected_filter_ip(weirdshark::Filter::from_vec(args.ips));
+        capturer_cfg = capturer_cfg.add_undirected_filter_ip(weirdshark::filters::Filter::from_vec(args.ips));
     }
 
     if !args.source_ips.is_empty() {
-        let filter = weirdshark::Filter::from_vec(args.source_ips);
-        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_source(filter));
+        let filter = weirdshark::filters::Filter::from_vec(args.source_ips);
+        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_source(filter));
     }
 
     if !args.destination_ips.is_empty() {
-        let filter = weirdshark::Filter::from_vec(args.destination_ips);
-        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_destination(filter));
+        let filter = weirdshark::filters::Filter::from_vec(args.destination_ips);
+        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_destination(filter));
     }
 
     if !args.ip_range.is_empty() {
-        let vec : Vec<Filter<IpAddr>>  = args.ip_range.into_iter()
-            .map(|tuple|{Filter::from_range(tuple._0,tuple._1)})
+        let vec : Vec<weirdshark::filters::Filter<IpAddr>>  = args.ip_range.into_iter()
+            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_undirected_filter_ip(filter);
@@ -71,20 +70,20 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.source_ip_range.is_empty() {
-        let vec : Vec<Filter<IpAddr>>  = args.source_ip_range.into_iter()
-            .map(|tuple|{Filter::from_range(tuple._0,tuple._1)})
+        let vec : Vec<weirdshark::filters::Filter<IpAddr>>  = args.source_ip_range.into_iter()
+            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
             .collect();
         for filter in vec {
-            capturer_cfg = capturer_cfg.add_directed_filter_ip(DirectedFilter::only_source(filter));
+            capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_source(filter));
         }
     }
 
     if !args.destination_ip_range.is_empty() {
-        let vec : Vec<Filter<IpAddr>>  = args.destination_ip_range.into_iter()
-            .map(|tuple|{Filter::from_range(tuple._0,tuple._1)})
+        let vec : Vec<weirdshark::filters::Filter<IpAddr>>  = args.destination_ip_range.into_iter()
+            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
             .collect();
         for filter in vec {
-            capturer_cfg = capturer_cfg.add_directed_filter_ip(DirectedFilter::only_destination(filter));
+            capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_destination(filter));
         }
     }
 

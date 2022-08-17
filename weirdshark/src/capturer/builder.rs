@@ -97,7 +97,7 @@ impl CapturerBuilder {
     }
 
     pub fn add_undirected_filter_ip(mut self, filter: Filter<IpAddr>) -> Self {
-        self.ip_filters.push_back(DirectedFilter::Both(filter));
+        self.ip_filters.push_back(DirectedFilter::both_directions(filter));
         self
     }
 
