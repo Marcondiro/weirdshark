@@ -1,4 +1,4 @@
-use std::collections::LinkedList;
+use std::collections::linked_list::LinkedList;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::time;
@@ -15,7 +15,7 @@ pub struct CapturerBuilder {
     report_name_prefix: String,
     report_interval: Option<time::Duration>,
     ip_filters: LinkedList<DirectedFilter<IpAddr>>,
-    //l3_filters : LinkedList<Filter<Ipv4Packet>>,
+    port_filters: LinkedList<DirectedFilter<u16>>,
     //TODO filters
 }
 
@@ -50,6 +50,7 @@ impl CapturerBuilder {
             report_name_prefix: "weirdshark_capture".to_string(),
             report_interval: None,
             ip_filters: LinkedList::new(),
+            port_filters: LinkedList::new(),
         }
     }
 
@@ -101,6 +102,16 @@ impl CapturerBuilder {
         self
     }
 
+    pub fn add_directed_filter_port(mut self, filter: DirectedFilter<u16>) -> Self {
+        self.port_filters.push_back(filter);
+        self
+    }
+
+    pub fn add_undirected_filter_port(mut self, filter: Filter<u16>) -> Self {
+        self.port_filters.push_back(DirectedFilter::both_directions(filter));
+        self
+    }
+
     pub fn build(self) -> Result<Capturer, WeirdsharkError> {
         if self.interface.is_none() {
             return Err(WeirdsharkError::GenericError); //TODO refine error ?
@@ -111,7 +122,8 @@ impl CapturerBuilder {
             self.report_path,
             self.report_name_prefix,
             self.report_interval,
-            self.ip_filters
+            self.ip_filters,
+            self.port_filters,
         );
         let worker_sender = capturer_worker.get_sender();
         let worker_thread_handle = capturer_worker.work();

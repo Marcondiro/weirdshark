@@ -87,6 +87,20 @@ pub struct CaptureParams {
     /// Filter by destination port, insert the ports to include in the report
     #[clap(long, multiple_values = true)]
     pub destination_ports: Vec<u16>,
+
+    /// Filter by port, insert port range to include in the report
+    /// Packets which source OR destination port is in the range are recorded
+    #[clap(long, multiple_values = true)]
+    pub port_range: Vec<tuple2::Tuple2<u16>>,
+
+    /// Filter by source port, insert port range to include in the report
+    #[clap(long, multiple_values = true)]
+    pub source_port_range: Vec<tuple2::Tuple2<u16>>,
+
+    /// Filter by destination port, insert port range to include in the report
+    #[clap(long, multiple_values = true)]
+    pub destination_port_range: Vec<tuple2::Tuple2<u16>>,
+
 }
 
 #[derive(ValueEnum, Clone, Debug)]

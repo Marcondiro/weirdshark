@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::collections::LinkedList;
+use std::collections::linked_list::LinkedList;
 
 use std::mem;
 use std::net::IpAddr;
@@ -68,10 +68,11 @@ struct CapturerWorker {
     is_paused: bool,
     interface: NetworkInterface,
     ip_filters: LinkedList<DirectedFilter<IpAddr>>,
+    port_filters: LinkedList<DirectedFilter<u16>>,
 }
 
 impl CapturerWorker {
-    fn new(interface: NetworkInterface, report_path: PathBuf, report_name_prefix: String, report_interval: Option<Duration>, ip_filters: LinkedList<DirectedFilter<IpAddr>>) -> Self {
+    fn new(interface: NetworkInterface, report_path: PathBuf, report_name_prefix: String, report_interval: Option<Duration>, ip_filters: LinkedList<DirectedFilter<IpAddr>>,  port_filters: LinkedList<DirectedFilter<u16>>, ) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         let map = HashMap::new();
         let report_scheduler = match report_interval {
@@ -80,7 +81,7 @@ impl CapturerWorker {
         };
         let is_paused = false;
 
-        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface, ip_filters }
+        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface, ip_filters, port_filters }
     }
 
     fn get_sender(&self) -> Sender<WorkerCommand> {
@@ -150,6 +151,15 @@ impl CapturerWorker {
                                                     continue;
                                                 }
                                             }
+
+                                            if !self.port_filters.is_empty(){
+                                                if !self.port_filters.iter().any(|filter: &DirectedFilter<u16>|{
+                                                    filter.filter(&packet_info.source_port,&packet_info.destination_port)
+                                                }) {
+                                                    continue;
+                                                }
+                                            }
+
                                             let k = RecordKey {
                                                 source_ip: packet_info.source_ip,
                                                 destination_ip: packet_info.destination_ip,

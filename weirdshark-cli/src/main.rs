@@ -87,6 +87,47 @@ fn capture(args: CaptureParams) {
         }
     }
 
+    if !args.ports.is_empty() {
+        capturer_cfg = capturer_cfg.add_undirected_filter_port(weirdshark::filters::Filter::from_vec(args.ports));
+    }
+
+    if !args.source_ports.is_empty() {
+        let filter = weirdshark::filters::Filter::from_vec(args.source_ports);
+        capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_source(filter));
+    }
+
+    if !args.destination_ports.is_empty() {
+        let filter = weirdshark::filters::Filter::from_vec(args.destination_ports);
+        capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_destination(filter));
+    }
+
+    if !args.port_range.is_empty() {
+        let vec : Vec<weirdshark::filters::Filter<u16>>  = args.port_range.into_iter()
+            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+            .collect();
+        for filter in vec {
+            capturer_cfg = capturer_cfg.add_undirected_filter_port(filter);
+        }
+    }
+
+    if !args.source_port_range.is_empty() {
+        let vec : Vec<weirdshark::filters::Filter<u16>>  = args.source_port_range.into_iter()
+            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+            .collect();
+        for filter in vec {
+            capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_source(filter));
+        }
+    }
+
+    if !args.destination_port_range.is_empty() {
+        let vec : Vec<weirdshark::filters::Filter<u16>>  = args.destination_port_range.into_iter()
+            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+            .collect();
+        for filter in vec {
+            capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_destination(filter));
+        }
+    }
+
     let capturer = match capturer_cfg.build() {
         Ok(cap) => cap,
         Err(err) => {
