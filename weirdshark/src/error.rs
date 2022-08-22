@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
+/// All Weirdshark custom errors.
 #[derive(Debug)]
 pub enum WeirdsharkError {
     GenericError,

@@ -10,6 +10,10 @@ use crate::{get_interface_by_description, get_interface_by_name, TransportProtoc
 use crate::filters::{Filter, DirectedFilter};
 use crate::error::WeirdsharkError;
 
+/// Capturer builder.
+///
+/// Struct used to create a Capturer following the builder pattern.
+/// Exposes different methods to set up the capture and a build method.
 pub struct CapturerBuilder {
     interface: Option<NetworkInterface>,
     report_path: PathBuf,
@@ -43,6 +47,7 @@ fn is_interface_running(_i: &NetworkInterface) -> bool {
 }
 
 impl CapturerBuilder {
+    /// Construct a new CapturerBuilder
     pub fn new() -> Self {
         Self {
             interface: None,
@@ -59,16 +64,19 @@ impl CapturerBuilder {
         self
     }
 
+    /// Set the interface to capture from providing its name
     pub fn interface_by_name(mut self, name: &str) -> Self {
         self.interface = get_interface_by_name(name);
         self
     }
 
+    /// Set the interface to capture from providing its description
     pub fn interface_by_description(mut self, name: &str) -> Self {
         self.interface = get_interface_by_description(name);
         self
     }
 
+    /// Set the interface to capture from providing its index
     pub fn interface_by_index(mut self, index: u32) -> Self {
         let interface = datalink::interfaces().into_iter()
             .filter(|i| i.index == index)
@@ -77,11 +85,13 @@ impl CapturerBuilder {
         self
     }
 
+    /// Set the path where to save reports
     pub fn report_path(mut self, path: &Path) -> Self {
         self.report_path = PathBuf::from(path);
         self
     }
 
+    /// Set the timeout after which a report is generated
     pub fn report_interval(mut self, duration: Option<time::Duration>) -> Self {
         self.report_interval = duration;
         self
@@ -112,7 +122,8 @@ impl CapturerBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Capturer, Box<dyn Error>> {
+    /// Generate the Capturer
+    pub fn build(&self) -> Result<Capturer, Box<dyn Error>> {
         if self.interface.is_none() {
             return Err(WeirdsharkError::InterfaceNotSpecified.into());
         }
@@ -121,11 +132,11 @@ impl CapturerBuilder {
         fs::create_dir_all(&self.report_path)?;
 
         let capturer_worker = CapturerWorker::new(
-            self.interface.unwrap(),
-            self.report_path,
+            self.interface.as_ref().unwrap().clone(),
+            self.report_path.clone(),
             self.report_interval,
-            self.ip_filters,
-            self.port_filters,
+            self.ip_filters.clone(),
+            self.port_filters.clone(),
             self.transport_protocol,
         );
         let worker_sender = capturer_worker.get_sender();

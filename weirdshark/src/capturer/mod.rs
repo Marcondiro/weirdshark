@@ -22,30 +22,28 @@ pub mod builder;
 mod write_scheduler;
 pub mod parser;
 
-pub enum WorkerCommand {
-    Start,
-    Pause,
-    Stop,
-    WriteFile,
-    HandlePacket(Result<Vec<u8>, std::io::Error>),
-}
-
+/// Capture manager.
+///
+/// This struct manages a capture, it can pause, start and stop the capture.
 pub struct Capturer {
     worker_thread_handle: JoinHandle<()>,
     worker_sender: Sender<WorkerCommand>,
 }
 
 impl Capturer {
+    /// Start the capture
     pub fn start(&self) -> Result<(), WeirdsharkError> {
         self.worker_sender.send(WorkerCommand::Start)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot start capturer.".to_string()))
     }
 
+    /// Pause the capture
     pub fn pause(&self) -> Result<(), WeirdsharkError> {
         self.worker_sender.send(WorkerCommand::Pause)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot pause capturer.".to_string()))
     }
 
+    /// Stop the capture
     pub fn stop(self) -> Result<(), WeirdsharkError> {
         self.worker_sender.send(WorkerCommand::WriteFile)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot save report.".to_string()))?;
@@ -54,6 +52,14 @@ impl Capturer {
         self.worker_thread_handle.join()
             .map_err(|_| todo!())
     }
+}
+
+enum WorkerCommand {
+    Start,
+    Pause,
+    Stop,
+    WriteFile,
+    HandlePacket(Result<Vec<u8>, std::io::Error>),
 }
 
 struct CapturerWorker {

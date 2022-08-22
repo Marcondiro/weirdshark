@@ -1,7 +1,9 @@
+#[derive(Clone)]
 pub struct Filter<T> {
     inner: InnerFilter<T>,
 }
 
+#[derive(Clone)]
 pub struct DirectedFilter<T> {
     inner: InnerDirectedFilter<T>,
 }
@@ -33,10 +35,11 @@ impl<T: PartialOrd + PartialEq> DirectedFilter<T> {
         Self { inner: InnerDirectedFilter::Both(filter.inner) }
     }
     pub(super) fn filter(&self, source: &T, destination: &T) -> bool {
-        self.inner.filter(source,destination)
+        self.inner.filter(source, destination)
     }
 }
 
+#[derive(Clone)]
 enum InnerFilter<T> {
     Range(T, T),
     List(Vec<T>),
@@ -52,6 +55,7 @@ impl<T: PartialOrd + PartialEq> InnerFilter<T> {
     }
 }
 
+#[derive(Clone)]
 enum InnerDirectedFilter<T> {
     Source(InnerFilter<T>),
     Destination(InnerFilter<T>),
