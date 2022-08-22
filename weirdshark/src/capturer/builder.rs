@@ -12,7 +12,6 @@ use crate::error::WeirdsharkError;
 pub struct CapturerBuilder {
     interface: Option<NetworkInterface>,
     report_path: PathBuf,
-    report_name_prefix: String,
     report_interval: Option<time::Duration>,
     ip_filters: LinkedList<DirectedFilter<IpAddr>>,
     port_filters: LinkedList<DirectedFilter<u16>>,
@@ -47,7 +46,6 @@ impl CapturerBuilder {
         Self {
             interface: None,
             report_path: PathBuf::new(),
-            report_name_prefix: "weirdshark_capture".to_string(),
             report_interval: None,
             ip_filters: LinkedList::new(),
             port_filters: LinkedList::new(),
@@ -126,7 +124,6 @@ impl CapturerBuilder {
         let capturer_worker = CapturerWorker::new(
             self.interface.unwrap(),
             self.report_path,
-            self.report_name_prefix,
             self.report_interval,
             self.ip_filters,
             self.port_filters,
@@ -135,5 +132,6 @@ impl CapturerBuilder {
         let worker_sender = capturer_worker.get_sender();
         let worker_thread_handle = capturer_worker.work();
         Ok(Capturer { worker_sender, worker_thread_handle })
+        //TODO if output path doesnt exist create
     }
 }

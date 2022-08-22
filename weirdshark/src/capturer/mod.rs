@@ -64,7 +64,6 @@ struct CapturerWorker {
     map: HashMap<RecordKey, RecordValue>,
     report_scheduler: Option<WriteScheduler>,
     report_path: PathBuf,
-    report_name_prefix: String,
     is_paused: bool,
     interface: NetworkInterface,
     ip_filters: LinkedList<DirectedFilter<IpAddr>>,
@@ -75,11 +74,10 @@ struct CapturerWorker {
 impl CapturerWorker {
     fn new(interface: NetworkInterface,
            report_path: PathBuf,
-           report_name_prefix: String,
            report_interval: Option<Duration>,
            ip_filters: LinkedList<DirectedFilter<IpAddr>>,
            port_filters: LinkedList<DirectedFilter<u16>>,
-            protocol_filter : Option<TransportProtocols>,
+           protocol_filter: Option<TransportProtocols>,
     ) -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         let map = HashMap::new();
@@ -89,7 +87,7 @@ impl CapturerWorker {
         };
         let is_paused = false;
 
-        Self { sender, receiver, map, report_scheduler, report_path, report_name_prefix, is_paused, interface, ip_filters, port_filters, protocol_filter }
+        Self { sender, receiver, map, report_scheduler, report_path, is_paused, interface, ip_filters, port_filters, protocol_filter }
     }
 
     fn get_sender(&self) -> Sender<WorkerCommand> {
@@ -97,9 +95,9 @@ impl CapturerWorker {
     }
 
     fn write_csv(&mut self) -> Result<(), WeirdsharkError> {
-        let file_name = (self.report_name_prefix.clone() +
-            &Utc::now().to_string()).replace(":", "-").replace(".", "_") +
-            ".csv"; //TODO: manage prefix parameter
+        let file_name = "weirdshark_capture".to_string() +
+            &Utc::now().to_string().replace(":", "-").replace(".", "_") +
+            ".csv";
         let path = self.report_path.join(&file_name);
         let mut writer = match csv::Writer::from_path(&path) {
             Ok(writer) => writer,
@@ -152,24 +150,24 @@ impl CapturerWorker {
                                     Ok(data) => {
                                         let parse_res = parser::parse_transport_packet(data);
                                         if let Ok(packet_info) = parse_res {
-                                            if !self.ip_filters.is_empty(){
-                                                if !self.ip_filters.iter().any(|filter: &DirectedFilter<IpAddr>|{
-                                                    filter.filter(&packet_info.source_ip,&packet_info.destination_ip)
+                                            if !self.ip_filters.is_empty() {
+                                                if !self.ip_filters.iter().any(|filter: &DirectedFilter<IpAddr>| {
+                                                    filter.filter(&packet_info.source_ip, &packet_info.destination_ip)
                                                 }) {
                                                     continue;
                                                 }
                                             }
 
-                                            if !self.port_filters.is_empty(){
-                                                if !self.port_filters.iter().any(|filter: &DirectedFilter<u16>|{
-                                                    filter.filter(&packet_info.source_port,&packet_info.destination_port)
+                                            if !self.port_filters.is_empty() {
+                                                if !self.port_filters.iter().any(|filter: &DirectedFilter<u16>| {
+                                                    filter.filter(&packet_info.source_port, &packet_info.destination_port)
                                                 }) {
                                                     continue;
                                                 }
                                             }
 
                                             match self.protocol_filter {
-                                                Some(protcol) => if protcol != packet_info.transport_protocol {continue}
+                                                Some(protcol) => if protcol != packet_info.transport_protocol { continue; }
                                                 None => (),
                                             }
 

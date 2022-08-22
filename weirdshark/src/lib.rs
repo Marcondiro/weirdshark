@@ -1,13 +1,14 @@
 //! # weirdshark
 //!
-//! `weirdshark` is a cross-platform library capable of intercepting incoming and outgoing traffic
-//! through the network interfaces.
+//! `weirdshark` is a cross-platform library capable of **intercepting** incoming and outgoing
+//! **traffic** through the network interfaces.
 //!
 //! The library allows to collect IP address, port and protocol type of observed traffic and will
 //! generate a **report in csv format**.
 //!
 //! The report lists for each of the network address/port pairs that have been observed, the
-//! protocols that was transported, the cumulated number of bytes transmitted, the timestamp of the first and last occurrence of information exchange.
+//! protocols that was transported, the cumulated number of bytes transmitted, the timestamp of the
+//! first and last occurrence of information exchange.
 //!
 //! Through CapturerBuilder's parameters it is possible to specify the network adapter to be
 //! inspected, the output file to be generated, the time interval after which a new report is

@@ -36,8 +36,8 @@ pub struct CaptureParams {
     #[clap(short = 'd', long)]
     pub interface_desc: Option<String>,
 
-    /// Output path, including file name
-    #[clap(short = 'o', long, default_value = "./captures")]
+    /// Output reports path
+    #[clap(short = 'o', long, default_value = ".")]
     pub path: String,
 
     /// Time interval in seconds after which a new report is generated
