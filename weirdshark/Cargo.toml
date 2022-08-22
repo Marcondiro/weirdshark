@@ -8,6 +8,6 @@ build = "build.rs"
 
 [dependencies]
 pnet = { version = "0.31.0", features = ["std", "serde"] }
-serde = { version = "1.0.140", features = ["derive"] }
+serde = { version = "1.0.142", features = ["derive"] }
 csv = "1.1.6"
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { version = "0.4.20", features = ["serde"] }
