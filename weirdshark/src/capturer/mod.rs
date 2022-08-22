@@ -50,7 +50,7 @@ impl Capturer {
         self.worker_sender.send(WorkerCommand::Stop)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot stop capturer.".to_string()))?;
         self.worker_thread_handle.join()
-            .map_err(|_| todo!())
+            .map_err(|e| WeirdsharkError::CapturerError(e.downcast::<&str>().unwrap().to_string()))
     }
 }
 
@@ -179,15 +179,15 @@ impl CapturerWorker {
                                                 .or_insert(RecordValue { bytes: packet_info.bytes, first_seen: now, last_seen: now });
                                         }
                                     }
-                                    Err(e) => panic!("packetdump: unable to receive packet: {}", e), //TODO manage with errors
+                                    Err(e) => panic!("Weirdshark is unable to receive packet: {}", e),
                                 }
                             }
                             WorkerCommand::WriteFile => {
                                 self.write_csv()
-                                    .expect("Weirdshark encountered an error while writing the file"); //TODO manage with errors?
+                                    .expect("Weirdshark encountered an error while writing the file");
                             }
                         }
-                    Err(_) => todo!(),
+                    Err(_) => break,
                 };
             }
         )
