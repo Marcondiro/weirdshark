@@ -62,8 +62,8 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.ip_range.is_empty() {
-        let vec : Vec<weirdshark::filters::Filter<IpAddr>>  = args.ip_range.into_iter()
-            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+        let vec: Vec<weirdshark::filters::Filter<IpAddr>> = args.ip_range.into_iter()
+            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_undirected_filter_ip(filter);
@@ -71,8 +71,8 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.source_ip_range.is_empty() {
-        let vec : Vec<weirdshark::filters::Filter<IpAddr>>  = args.source_ip_range.into_iter()
-            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+        let vec: Vec<weirdshark::filters::Filter<IpAddr>> = args.source_ip_range.into_iter()
+            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_source(filter));
@@ -80,8 +80,8 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.destination_ip_range.is_empty() {
-        let vec : Vec<weirdshark::filters::Filter<IpAddr>>  = args.destination_ip_range.into_iter()
-            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+        let vec: Vec<weirdshark::filters::Filter<IpAddr>> = args.destination_ip_range.into_iter()
+            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_destination(filter));
@@ -103,8 +103,8 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.port_range.is_empty() {
-        let vec : Vec<weirdshark::filters::Filter<u16>>  = args.port_range.into_iter()
-            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+        let vec: Vec<weirdshark::filters::Filter<u16>> = args.port_range.into_iter()
+            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_undirected_filter_port(filter);
@@ -112,8 +112,8 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.source_port_range.is_empty() {
-        let vec : Vec<weirdshark::filters::Filter<u16>>  = args.source_port_range.into_iter()
-            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+        let vec: Vec<weirdshark::filters::Filter<u16>> = args.source_port_range.into_iter()
+            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_source(filter));
@@ -121,15 +121,15 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.destination_port_range.is_empty() {
-        let vec : Vec<weirdshark::filters::Filter<u16>>  = args.destination_port_range.into_iter()
-            .map(|tuple|{weirdshark::filters::Filter::from_range(tuple._0,tuple._1)})
+        let vec: Vec<weirdshark::filters::Filter<u16>> = args.destination_port_range.into_iter()
+            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_destination(filter));
         }
     }
 
-    let protocol_filter :Option<TransportProtocols> = if let Some(TransportProtocol::TCP) = args.transport_protocol {
+    let protocol_filter: Option<TransportProtocols> = if let Some(TransportProtocol::TCP) = args.transport_protocol {
         Some(TransportProtocols::TCP)
     } else if let Some(TransportProtocol::UDP) = args.transport_protocol {
         Some(TransportProtocols::UDP)
@@ -147,7 +147,7 @@ fn capture(args: CaptureParams) {
         }
     };
 
-    capturer.start();
+    capturer.start().unwrap();
     println!("Capture started");
     print_capture_help();
 
@@ -158,11 +158,11 @@ fn capture(args: CaptureParams) {
 
         match buffer.to_lowercase().trim_end() {
             "start" => {
-                capturer.start();
+                capturer.start().unwrap();
                 println!("Capture started");
             }
             "pause" => {
-                capturer.pause();
+                capturer.pause().unwrap();
                 println!("Capture paused");
             }
             "stop" => break,
@@ -172,7 +172,7 @@ fn capture(args: CaptureParams) {
     }
 
     println!("Capture stopped");
-    capturer.stop();
+    capturer.stop().unwrap();
 }
 
 fn print_capture_help() {

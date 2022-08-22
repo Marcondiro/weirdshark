@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::linked_list::LinkedList;
+use std::error::Error;
 
 use std::mem;
 use std::net::IpAddr;
@@ -16,7 +17,6 @@ pub use crate::capturer::builder::CapturerBuilder;
 use crate::capturer::write_scheduler::WriteScheduler;
 use crate::error::WeirdsharkError;
 use crate::filters::{DirectedFilter};
-
 
 pub mod builder;
 mod write_scheduler;
@@ -36,25 +36,23 @@ pub struct Capturer {
 }
 
 impl Capturer {
-    pub fn start(&self) {
-        //TODO: manager error
-        self.worker_sender.send(WorkerCommand::Start).unwrap();
+    pub fn start(&self) -> Result<(), WeirdsharkError> {
+        self.worker_sender.send(WorkerCommand::Start)
+            .map_err(|_| WeirdsharkError::CapturerError("Cannot start capturer.".to_string()))
     }
 
-    pub fn pause(&self) {
-        //TODO: manager error
-        self.worker_sender.send(WorkerCommand::Pause).unwrap();
+    pub fn pause(&self) -> Result<(), WeirdsharkError> {
+        self.worker_sender.send(WorkerCommand::Pause)
+            .map_err(|_| WeirdsharkError::CapturerError("Cannot pause capturer.".to_string()))
     }
 
-    //TODO replace stop with drop implementation
-    pub fn stop(self) {
-        //TODO: manager error
-        self.worker_sender.send(WorkerCommand::WriteFile).unwrap();
-        self.worker_sender.send(WorkerCommand::Stop).unwrap();
-        match self.worker_thread_handle.join() {
-            Ok(_) => {}
-            Err(e) => println!("{:?}", e) //TODO manage properly
-        }
+    pub fn stop(self) -> Result<(), WeirdsharkError> {
+        self.worker_sender.send(WorkerCommand::WriteFile)
+            .map_err(|_| WeirdsharkError::CapturerError("Cannot save report.".to_string()))?;
+        self.worker_sender.send(WorkerCommand::Stop)
+            .map_err(|_| WeirdsharkError::CapturerError("Cannot stop capturer.".to_string()))?;
+        self.worker_thread_handle.join()
+            .map_err(|_| todo!())
     }
 }
 
@@ -94,38 +92,25 @@ impl CapturerWorker {
         self.sender.clone()
     }
 
-    fn write_csv(&mut self) -> Result<(), WeirdsharkError> {
+    fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
         let file_name = "weirdshark_capture".to_string() +
             &Utc::now().to_string().replace(":", "-").replace(".", "_") +
             ".csv";
         let path = self.report_path.join(&file_name);
-        let mut writer = match csv::Writer::from_path(&path) {
-            Ok(writer) => writer,
-            Err(os_err) => {
-                let path_str = path.to_str().unwrap();
-                let err = format!("Cannot write to : {} for \n{}", path_str, os_err);
-                return Err(WeirdsharkError::WriteError(err));
-            }
-        };
+        let mut writer = csv::Writer::from_path(&path)?;
         let map = mem::take(&mut self.map);
 
         for (k, v) in map.into_iter() {
             let record = Record::from_key_value(k, v);
-            match writer.serialize(record) {
-                Ok(()) => (),
-                Err(error) => return Err(WeirdsharkError::SerializeError(format!("{}", error)))
-            };
+            writer.serialize(record)?;
         }
 
-        match writer.flush() {
-            Ok(()) => (),
-            Err(error) => return Err(WeirdsharkError::IoError(format!("{}", error)))
-        };
+        writer.flush()?;
         Ok(())
     }
 
     fn work(mut self) -> JoinHandle<()> {
-        PnetCaptureAdapter::new(&self.interface, self.get_sender()).capture(); //TODO check and throw eventual errors
+        PnetCaptureAdapter::new(&self.interface, self.get_sender()).capture();
         thread::spawn(move ||
             loop {
                 match self.receiver.recv() {
@@ -212,8 +197,8 @@ impl PnetCaptureAdapter {
     fn new(interface: &NetworkInterface, worker_sender: Sender<WorkerCommand>) -> Self {
         let pnet_receiver = match channel(&interface, Default::default()) {
             Ok(Ethernet(_, receiver)) => receiver,
-            Ok(_) => panic!("packetdump: unhandled channel type"), //TODO manage with errors
-            Err(e) => panic!("packetdump: unable to create channel: {}", e), //TODO manage with errors
+            Ok(_) => panic!("Weirdshark: unhandled channel type"),
+            Err(e) => panic!("Weirdshark: unable to create channel: {}", e),
         };
         Self { worker_sender, pnet_receiver }
     }

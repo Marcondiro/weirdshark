@@ -37,7 +37,7 @@ pub struct CaptureParams {
     pub interface_desc: Option<String>,
 
     /// Output reports path
-    #[clap(short = 'o', long, default_value = ".")]
+    #[clap(short = 'o', long, default_value = "captures")]
     pub path: String,
 
     /// Time interval in seconds after which a new report is generated

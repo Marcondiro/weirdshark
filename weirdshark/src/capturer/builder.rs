@@ -1,7 +1,8 @@
 use std::collections::linked_list::LinkedList;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use std::time;
+use std::{fs, time};
+use std::error::Error;
 use pnet::datalink;
 use pnet::datalink::NetworkInterface;
 use crate::capturer::{Capturer, CapturerWorker};
@@ -53,8 +54,6 @@ impl CapturerBuilder {
         }
     }
 
-    //TODO: this should check that all Configs are correct in setters
-
     fn interface(mut self, interface: NetworkInterface) -> Self {
         self.interface = Some(interface);
         self
@@ -62,13 +61,11 @@ impl CapturerBuilder {
 
     pub fn interface_by_name(mut self, name: &str) -> Self {
         self.interface = get_interface_by_name(name);
-        //.expect("Network interface not found"); // TODO: manage this with errors?
         self
     }
 
     pub fn interface_by_description(mut self, name: &str) -> Self {
         self.interface = get_interface_by_description(name);
-        //.expect("Network interface not found"); // TODO: manage this with errors?
         self
     }
 
@@ -76,7 +73,6 @@ impl CapturerBuilder {
         let interface = datalink::interfaces().into_iter()
             .filter(|i| i.index == index)
             .next();
-        //.expect("Network interface not found"); // TODO: manage this with errors
         self.interface = interface;
         self
     }
@@ -116,10 +112,13 @@ impl CapturerBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Capturer, WeirdsharkError> {
+    pub fn build(self) -> Result<Capturer, Box<dyn Error>> {
         if self.interface.is_none() {
-            return Err(WeirdsharkError::InterfaceNotSpecified);
+            return Err(WeirdsharkError::InterfaceNotSpecified.into());
         }
+
+        // Create reports directory if doesn't exist
+        fs::create_dir_all(&self.report_path)?;
 
         let capturer_worker = CapturerWorker::new(
             self.interface.unwrap(),
@@ -132,6 +131,5 @@ impl CapturerBuilder {
         let worker_sender = capturer_worker.get_sender();
         let worker_thread_handle = capturer_worker.work();
         Ok(Capturer { worker_sender, worker_thread_handle })
-        //TODO if output path doesnt exist create
     }
 }
