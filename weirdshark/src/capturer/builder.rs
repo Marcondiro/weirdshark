@@ -144,3 +144,26 @@ impl CapturerBuilder {
         Ok(Capturer { worker_sender, worker_thread_handle })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::capturer::CapturerBuilder;
+    use crate::error::WeirdsharkError;
+
+    #[test]
+    fn default_builder_is_valid() {
+        let builder = CapturerBuilder::default();
+        let capturer = builder.build();
+        assert!(capturer.is_ok());
+    }
+
+    #[test]
+    fn build_fails_with_no_interface() {
+        let builder = CapturerBuilder::new();
+        let capturer = builder.build();
+        assert!(capturer.is_err());
+        if let Err(e) = capturer {
+            assert_eq!(*e.downcast::<WeirdsharkError>().unwrap(), WeirdsharkError::InterfaceNotSpecified);
+        }
+    }
+}

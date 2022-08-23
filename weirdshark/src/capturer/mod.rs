@@ -54,6 +54,7 @@ impl Capturer {
     }
 }
 
+#[derive(Debug)]
 enum WorkerCommand {
     Start,
     Pause,
@@ -183,8 +184,7 @@ impl CapturerWorker {
                                 }
                             }
                             WorkerCommand::WriteFile => {
-                                self.write_csv()
-                                    .expect("Weirdshark encountered an error while writing the file");
+                                self.write_csv().unwrap();
                             }
                         }
                     Err(_) => break,

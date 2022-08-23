@@ -57,3 +57,64 @@ impl WriteScheduler {
         condvar.notify_one();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+    use crate::capturer::WorkerCommand;
+    use crate::capturer::write_scheduler::WriteScheduler;
+
+    #[test]
+    fn ws_sends_write_command_after_one_interval() {
+        let interval = Duration::from_millis(200);
+        let (sender, receiver) = mpsc::channel();
+
+        let ws = WriteScheduler::new(interval, sender);
+        ws.start();
+        let start_time = Instant::now();
+
+        let result = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
+        let wakeup_time = Instant::now();
+        assert!(result.is_ok(), "The file generation scheduler didn't work, timeout reached");
+        match result.unwrap() {
+            WorkerCommand::WriteFile => assert!(wakeup_time - start_time >= interval),
+            c => panic!("File scheduler generated an unexpected command: {:?}", c),
+        }
+    }
+
+    #[test]
+    fn ws_sends_write_command_after_many_intervals() {
+        let interval = Duration::from_millis(100);
+        let (sender, receiver) = mpsc::channel();
+
+        let ws = WriteScheduler::new(interval, sender);
+        ws.start();
+
+        for i in 0..20 {
+            let start_time = Instant::now();
+            let result = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
+            let wakeup_time = Instant::now();
+            assert!(result.is_ok(), "The file generation scheduler didn't work, timeout reached");
+            match result.unwrap() {
+                WorkerCommand::WriteFile => assert!(wakeup_time - start_time >= interval),
+                c => panic!("File scheduler generated an unexpected command: {:?}", c),
+            }
+        }
+    }
+
+    #[test]
+    fn ws_stop_stops() {
+        let interval = Duration::from_millis(200);
+        let (sender, receiver) = mpsc::channel();
+
+        let ws = WriteScheduler::new(interval, sender);
+        ws.start();
+        ws.stop();
+        // ignore one eventual write caused by the first start
+        let _ = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
+
+        let result = receiver.recv_timeout(interval * 20);
+        assert!(result.is_err(), "The file generation scheduler pause didn't work, message received");
+    }
+}

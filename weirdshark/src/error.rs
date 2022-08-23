@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 /// All Weirdshark custom errors.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum WeirdsharkError {
     GenericError,
     CapturerError(String),
