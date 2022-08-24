@@ -13,6 +13,7 @@ use pnet::datalink::{channel, DataLinkReceiver, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
 use crate::{Record, RecordKey, RecordValue};
 pub use crate::capturer::builder::CapturerBuilder;
+use crate::capturer::parser::TransportPacket;
 use crate::capturer::write_scheduler::WriteScheduler;
 use crate::error::WeirdsharkError;
 use crate::filters::{DirectedFilter};
@@ -119,6 +120,26 @@ impl CapturerWorker {
         Ok(())
     }
 
+    fn apply_filters(&self, packet_info: &TransportPacket) -> bool {
+        if !self.ip_filters.is_empty() && !self.ip_filters.iter().any(|filter: &DirectedFilter<IpAddr>| {
+            filter.filter(&packet_info.source_ip, &packet_info.destination_ip)
+        }) {
+            return false;
+        }
+
+        if !self.port_filters.is_empty() && !self.port_filters.iter().any(|filter: &DirectedFilter<u16>| {
+            filter.filter(&packet_info.source_port, &packet_info.destination_port)
+        }) {
+            return false;
+        }
+
+        if self.protocol_filter.is_some() && self.protocol_filter.unwrap() != packet_info.transport_protocol {
+            return false;
+        }
+
+        true
+    }
+
     fn work(mut self) -> JoinHandle<()> {
         PnetCaptureAdapter::new(&self.interface, self.get_sender()).capture();
         thread::spawn(move ||
@@ -145,27 +166,9 @@ impl CapturerWorker {
                                     Ok(data) => {
                                         let parse_res = parser::parse_transport_packet(data);
                                         if let Ok(packet_info) = parse_res {
-                                            if !self.ip_filters.is_empty() {
-                                                if !self.ip_filters.iter().any(|filter: &DirectedFilter<IpAddr>| {
-                                                    filter.filter(&packet_info.source_ip, &packet_info.destination_ip)
-                                                }) {
-                                                    continue;
-                                                }
+                                            if !self.apply_filters(&packet_info) {
+                                                continue;
                                             }
-
-                                            if !self.port_filters.is_empty() {
-                                                if !self.port_filters.iter().any(|filter: &DirectedFilter<u16>| {
-                                                    filter.filter(&packet_info.source_port, &packet_info.destination_port)
-                                                }) {
-                                                    continue;
-                                                }
-                                            }
-
-                                            match self.protocol_filter {
-                                                Some(protcol) => if protcol != packet_info.transport_protocol { continue; }
-                                                None => (),
-                                            }
-
                                             let k = RecordKey {
                                                 source_ip: packet_info.source_ip,
                                                 destination_ip: packet_info.destination_ip,
@@ -176,7 +179,7 @@ impl CapturerWorker {
 
                                             let now = chrono::Local::now();
                                             self.map.entry(k)
-                                                .and_modify(|v: &mut RecordValue| {
+                                                .and_modify(|v| {
                                                     v.bytes += packet_info.bytes;
                                                     v.last_seen = now;
                                                 })
