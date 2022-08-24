@@ -29,8 +29,9 @@ impl Default for CapturerBuilder {
             .filter(|i| !i.is_loopback()
                 && i.is_up()
                 && is_interface_running(i) // is_running available only under unix
+                && i.mac.is_some()
                 && !i.ips.is_empty())
-            .next()
+            .reduce(|a, b| if a.ips.len() > b.ips.len() { a } else { b }) // get interface with most ips
             .expect("Weirdshark cannot find a default interface.");
         CapturerBuilder::new().interface(interface)
     }
