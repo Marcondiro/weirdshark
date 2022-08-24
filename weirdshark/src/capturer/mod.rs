@@ -100,11 +100,12 @@ impl CapturerWorker {
     }
 
     fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
-        let file_name = "weirdshark_capture".to_string() +
-            &chrono::Local::now().to_string()
-                .replace(":", "-")
-                .replace(".", "_") +
-            ".csv";
+        let file_name = ("weirdshark_capture_".to_string() +
+            self.interface.name.as_str() +
+            "_" +
+            &chrono::Local::now().to_string() +
+            ".csv"
+        ).replace(":", "-");
         let path = self.report_path.join(&file_name);
         let mut writer = csv::Writer::from_path(&path)?;
         let map = mem::take(&mut self.map);
