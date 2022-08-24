@@ -16,7 +16,6 @@
 
 use std::net::IpAddr;
 use serde::Serialize;
-use chrono::{DateTime, Utc};
 use pnet::datalink::interfaces;
 pub use pnet::datalink::{NetworkInterface};
 use crate::capturer::parser::TransportProtocols;
@@ -33,8 +32,8 @@ struct Record {
     source_port: u16,
     destination_port: u16,
     bytes: usize,
-    first_seen: DateTime<Utc>,
-    last_seen: DateTime<Utc>,
+    first_seen: chrono::DateTime<chrono::Local>,
+    last_seen: chrono::DateTime<chrono::Local>,
 }
 
 impl Record {
@@ -64,8 +63,8 @@ struct RecordKey {
 #[derive(Serialize, Debug)]
 struct RecordValue {
     bytes: usize,
-    first_seen: DateTime<Utc>,
-    last_seen: DateTime<Utc>,
+    first_seen: chrono::DateTime<chrono::Local>,
+    last_seen: chrono::DateTime<chrono::Local>,
 }
 
 pub fn get_interfaces() -> Vec<NetworkInterface> {

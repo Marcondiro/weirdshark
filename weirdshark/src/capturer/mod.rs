@@ -9,7 +9,6 @@ use std::thread::{JoinHandle};
 use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
-use chrono::Utc;
 use pnet::datalink::{channel, DataLinkReceiver, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
 use crate::{Record, RecordKey, RecordValue, TransportProtocols};
@@ -101,7 +100,9 @@ impl CapturerWorker {
 
     fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
         let file_name = "weirdshark_capture".to_string() +
-            &Utc::now().to_string().replace(":", "-").replace(".", "_") +
+            &chrono::Local::now().to_string()
+                .replace(":", "-")
+                .replace(".", "_") +
             ".csv";
         let path = self.report_path.join(&file_name);
         let mut writer = csv::Writer::from_path(&path)?;
@@ -171,7 +172,7 @@ impl CapturerWorker {
                                                 destination_port: packet_info.destination_port,
                                             };
 
-                                            let now = Utc::now();
+                                            let now = chrono::Local::now();
                                             self.map.entry(k)
                                                 .and_modify(|v: &mut RecordValue| {
                                                     v.bytes += packet_info.bytes;

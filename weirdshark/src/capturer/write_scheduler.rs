@@ -91,7 +91,7 @@ mod tests {
         let ws = WriteScheduler::new(interval, sender);
         ws.start();
 
-        for i in 0..20 {
+        for _ in 0..20 {
             let start_time = Instant::now();
             let result = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
             let wakeup_time = Instant::now();
