@@ -12,6 +12,7 @@ pub enum WeirdsharkError {
     IncompleteEthernetFrame,
     IncompleteIpPacket,
     IncompleteTcpSegment,
+    IncompleteUdpSegment,
     UnsupportedTransportProtocol,
 }
 

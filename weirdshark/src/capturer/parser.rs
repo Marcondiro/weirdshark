@@ -129,6 +129,6 @@ fn parse_tcp_packet(data: &[u8]) -> Result<TcpPacket, WeirdsharkError> {
 fn parse_udp_packet(data: &[u8]) -> Result<UdpPacket, WeirdsharkError> {
     return match UdpPacket::new(data) {
         Some(segment) => Ok(segment),
-        None => Err(WeirdsharkError::IncompleteTcpSegment),
+        None => Err(WeirdsharkError::IncompleteUdpSegment),
     };
 }
