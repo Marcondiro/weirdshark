@@ -17,12 +17,17 @@
 use std::net::IpAddr;
 use serde::Serialize;
 use pnet::datalink::interfaces;
-pub use pnet::datalink::{NetworkInterface};
-use crate::capturer::parser::TransportProtocols;
+use pnet::datalink::{NetworkInterface};
 
 pub mod capturer;
 pub mod filters;
 pub mod error;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+pub enum TransportProtocols {
+    TCP,
+    UDP,
+}
 
 #[derive(Serialize)]
 struct Record {
@@ -71,13 +76,13 @@ pub fn get_interfaces() -> Vec<NetworkInterface> {
     interfaces()
 }
 
-pub fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
+fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
     interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.name == name)
         .next()
 }
 
-pub fn get_interface_by_description(description: &str) -> Option<NetworkInterface> {
+fn get_interface_by_description(description: &str) -> Option<NetworkInterface> {
     interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.description == description)
         .next()

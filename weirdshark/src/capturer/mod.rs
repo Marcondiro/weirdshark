@@ -11,15 +11,16 @@ use std::thread;
 use std::time::Duration;
 use pnet::datalink::{channel, DataLinkReceiver, NetworkInterface};
 use pnet::datalink::Channel::Ethernet;
-use crate::{Record, RecordKey, RecordValue, TransportProtocols};
+use crate::{Record, RecordKey, RecordValue};
 pub use crate::capturer::builder::CapturerBuilder;
 use crate::capturer::write_scheduler::WriteScheduler;
 use crate::error::WeirdsharkError;
 use crate::filters::{DirectedFilter};
+use crate::TransportProtocols;
 
-pub mod builder;
+mod builder;
 mod write_scheduler;
-pub mod parser;
+mod parser;
 
 /// Capture manager.
 ///

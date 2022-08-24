@@ -2,7 +2,7 @@ use std::io;
 use std::net::IpAddr;
 use clap::{Parser};
 use weirdshark;
-use weirdshark::capturer::parser::TransportProtocols;
+use weirdshark::TransportProtocols;
 use crate::args::{CaptureParams, TransportProtocol};
 
 mod args;

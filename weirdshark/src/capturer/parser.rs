@@ -7,16 +7,8 @@ use pnet::packet::ipv6::Ipv6Packet;
 use pnet::packet::ip::{IpNextHeaderProtocols};
 use pnet::packet::tcp::TcpPacket;
 use pnet::packet::udp::UdpPacket;
-use serde::Serialize;
 use crate::error::WeirdsharkError;
-use crate::error::WeirdsharkError::IncompleteTcpSegment;
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-pub enum TransportProtocols {
-    TCP,
-    UDP,
-}
+use crate::TransportProtocols;
 
 enum InternetProtocol {
     Ipv4,
@@ -130,13 +122,13 @@ fn parse_ipv6_packet<'p>(ethernet: &'p EthernetPacket<'p>) -> Result<Ipv6Packet<
 fn parse_tcp_packet(data: &[u8]) -> Result<TcpPacket, WeirdsharkError> {
     return match TcpPacket::new(data) {
         Some(segment) => Ok(segment),
-        None => Err(IncompleteTcpSegment),
+        None => Err(WeirdsharkError::IncompleteTcpSegment),
     };
 }
 
 fn parse_udp_packet(data: &[u8]) -> Result<UdpPacket, WeirdsharkError> {
     return match UdpPacket::new(data) {
         Some(segment) => Ok(segment),
-        None => Err(IncompleteTcpSegment),
+        None => Err(WeirdsharkError::IncompleteTcpSegment),
     };
 }
