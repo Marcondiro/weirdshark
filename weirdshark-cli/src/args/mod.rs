@@ -1,6 +1,7 @@
-use clap::{Parser, Args, Subcommand, ValueEnum, ArgGroup};
+use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use std::net::IpAddr;
-use crate::tuple2;
+
+mod tuple2;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]

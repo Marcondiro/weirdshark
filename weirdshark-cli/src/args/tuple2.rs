@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error;
 use std::str::FromStr;
-use crate::tuple2::ParseError::{ElementParsing, GenericError};
+use ParseError::{ElementParsing, GenericError};
 
 #[derive(Debug)]
 pub struct Tuple2<T: FromStr> {
@@ -31,10 +31,10 @@ impl<T: FromStr> FromStr for Tuple2<T> {
         }
         let mut _0 = None;
         let mut _1 = None;
-        for (i,string) in vec.iter().enumerate() {
+        for (i, string) in vec.iter().enumerate() {
             let el = match T::from_str(string) {
                 Ok(el) => el,
-                Err(_err)=> return Err(ElementParsing(format!("Error parsing one element from \"{}\"",string)))
+                Err(_err) => return Err(ElementParsing(format!("Error parsing one element from \"{}\"", string)))
             };
             if i == 0 {
                 _0 = Some(el);
@@ -44,7 +44,7 @@ impl<T: FromStr> FromStr for Tuple2<T> {
         }
 
 
-        Ok(Tuple2{_0: _0.unwrap(),_1: _1.unwrap()})
+        Ok(Tuple2 { _0: _0.unwrap(), _1: _1.unwrap() })
     }
 }
 
@@ -57,10 +57,8 @@ pub enum ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{:?}", self)
+        write!(f, "{:?}", self)
     }
 }
 
-impl Error for ParseError{
-
-}
+impl Error for ParseError {}

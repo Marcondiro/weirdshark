@@ -1,12 +1,11 @@
 use std::io;
 use std::net::IpAddr;
-use clap::{Parser};
+use clap::Parser;
 use weirdshark;
 use weirdshark::TransportProtocols;
 use crate::args::{CaptureParams, TransportProtocol};
 
 mod args;
-mod tuple2;
 
 fn main() {
     let args = args::Cli::parse();
