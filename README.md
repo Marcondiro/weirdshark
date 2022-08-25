@@ -24,7 +24,7 @@ Basic example that captures traffic on the default interface for 10 seconds and 
 use weirdshark;
 
 fn main() {
-    let capturer_builder = weirdshark::capturer::CapturerBuilder::default();
+    let capturer_builder = weirdshark::CapturerBuilder::default();
     let capturer = capturer_builder.build().unwrap();
     capturer.start().unwrap();
     std::thread::sleep(std::time::Duration::from_secs(10));
