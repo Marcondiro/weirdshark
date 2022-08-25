@@ -98,26 +98,39 @@ impl CapturerBuilder {
         self
     }
 
+    ///Add a filter on Ip address. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
+    ///Example: filter on IpAddr: 10.12.0.1, (192.168.0.1,192.168.0.255) will accept either packets from 10.12.0.1 or any among 192.168.0.0/24, but if we add the TCP filter
+    ///will accept only TCP traffic on given ip addresses
     pub fn add_directed_filter_ip(mut self, filter: DirectedFilter<IpAddr>) -> Self {
         self.ip_filters.push_back(filter);
         self
     }
 
+    ///Add an undirected filter on Ip address. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
+    ///Example: filter on IpAddr: 10.12.0.1, (192.168.0.1,192.168.0.255) will accept either packets from 10.12.0.1 or any among 192.168.0.0/24, but if we add the TCP filter
+    ///will accept only TCP traffic on given ip addresses
     pub fn add_undirected_filter_ip(mut self, filter: Filter<IpAddr>) -> Self {
         self.ip_filters.push_back(DirectedFilter::both_directions(filter));
         self
     }
 
+    ///Add a filter on ports. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
+    ///Example: filter on ports: 1024, (443-500) will accept either packets from 1024 or any in the range 443-500 , but if we add the UDP filter
+    ///will accept only UDP traffic on given ports
     pub fn add_directed_filter_port(mut self, filter: DirectedFilter<u16>) -> Self {
         self.port_filters.push_back(filter);
         self
     }
 
+    ///Add a filter on ports. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
+    ///Example: filter on ports: 1024, (443-500) will accept either packets from 1024 or any in the range 443-500 , but if we add the UDP filter
+    ///will accept only UDP traffic on given ports
     pub fn add_undirected_filter_port(mut self, filter: Filter<u16>) -> Self {
         self.port_filters.push_back(DirectedFilter::both_directions(filter));
         self
     }
 
+    ///Add a filter on which transport protocol capture.
     pub fn add_transport_protocol_filter(mut self, transport_protocol: Option<TransportProtocols>) -> Self {
         self.transport_protocol = transport_protocol;
         self

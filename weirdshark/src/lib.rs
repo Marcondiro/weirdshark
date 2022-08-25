@@ -76,18 +76,28 @@ struct RecordValue {
     last_seen: chrono::DateTime<chrono::Local>,
 }
 
+///Retrieve the list of Network Interfaces detected on your PC, in the same format as `pnet::NetworkInterface`
 pub fn get_interfaces() -> Vec<NetworkInterface> {
     interfaces()
 }
 
-fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
+///Retrieve, if any, the network interface called `name`
+pub fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
     interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.name == name)
         .next()
 }
 
-fn get_interface_by_description(description: &str) -> Option<NetworkInterface> {
+///Retrieve, if any, the network interface with given `description`, useful on Windows hosts, where Interface name is just an UUID
+pub fn get_interface_by_description(description: &str) -> Option<NetworkInterface> {
     interfaces().into_iter()
         .filter(|i: &NetworkInterface| i.description == description)
+        .next()
+}
+
+///Retrieve, if any, the network interface with given `index`, useful on Windows hosts, where Interface name is just an UUID
+pub fn get_interface_by_index(index: u32) -> Option<NetworkInterface> {
+    interfaces().into_iter()
+        .filter(|i: &NetworkInterface| i.index == index)
         .next()
 }
