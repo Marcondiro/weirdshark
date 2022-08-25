@@ -72,3 +72,49 @@ impl<T: PartialOrd + PartialEq> InnerDirectedFilter<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{DirectedFilter, Filter};
+
+    #[test]
+    fn filter_single_element() {
+        let filter = DirectedFilter::both_directions(Filter::from_vec(vec![10]));
+        assert_eq!(filter.filter(&10, &11), true);
+        assert_eq!(filter.filter(&12, &11), false);
+    }
+
+    #[test]
+    fn filter_list() {
+        let filter = DirectedFilter::only_source(Filter::from_vec(vec![10, 20, 30, 40]));
+        assert_eq!(filter.filter(&0, &10), false);
+        assert_eq!(filter.filter(&30, &35), true);
+        assert_eq!(filter.filter(&40, &20), true);
+    }
+
+    #[test]
+    fn filter_range() {
+        let filter = DirectedFilter::only_destination(Filter::from_range(20, 40));
+        assert_eq!(filter.filter(&0, &50), false);
+        assert_eq!(filter.filter(&30, &35), true);
+        assert_eq!(filter.filter(&40, &20), true);
+    }
+
+    #[test]
+    fn range_limits_are_included() {
+        let filter = Filter::from_range(20, 40);
+        assert_eq!(filter.inner.filter(&20), true);
+        assert_eq!(filter.inner.filter(&40), true);
+        assert_eq!(filter.inner.filter(&41), false);
+    }
+
+    #[test]
+    fn range_is_never_inverted() {
+        let filter1 = Filter::from_range(20, 40);
+        let filter2 = Filter::from_range(40, 20);
+        assert_eq!(filter1.inner.filter(&21), true);
+        assert_eq!(filter1.inner.filter(&41), false);
+        assert_eq!(filter2.inner.filter(&21), true);
+        assert_eq!(filter2.inner.filter(&41), false);
+    }
+}

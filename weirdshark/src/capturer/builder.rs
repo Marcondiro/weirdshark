@@ -27,12 +27,12 @@ impl Default for CapturerBuilder {
     fn default() -> Self {
         let interface = datalink::interfaces().into_iter()
             .filter(|i| !i.is_loopback()
-                && i.is_up()
+                && (cfg!(windows) || i.is_up())
                 && is_interface_running(i) // is_running available only under unix
                 && i.mac.is_some()
                 && !i.ips.is_empty())
             .reduce(|a, b| if a.ips.len() > b.ips.len() { a } else { b }) // get interface with most ips
-            .expect("Weirdshark cannot find a default interface.");
+            .expect(&format!("Weirdshark cannot find a default interface. {:?}",datalink::interfaces()));
         CapturerBuilder::new().interface(interface)
     }
 }
