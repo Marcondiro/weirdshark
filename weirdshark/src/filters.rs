@@ -1,18 +1,31 @@
+///Generic undirected filter
+///
+///Model a filter on sortable element, where the filter select a List of accepted values or a Range. The filter on single value can be brought as one element list.
+///
+/// Note: range filters adopt the IP addresses convention for ranges, where both extremes are included in it
+///Example: Range(192.168.0.0 - 192.168.0.255) will include 192.168.0.255
 #[derive(Clone)]
 pub struct Filter<T> {
     inner: InnerFilter<T>,
 }
 
+///Generic directed filter
+///
+/// Model the direction of a `Filter`, by applying it only on the source or destination. To have all kinds of filters the `Both` version works like `Filter`
 #[derive(Clone)]
 pub struct DirectedFilter<T> {
     inner: InnerDirectedFilter<T>,
 }
 
 impl<T: PartialOrd + PartialEq> Filter<T> {
+
+    ///Filter list builder
     pub fn from_vec(vec: Vec<T>) -> Self {
         Self { inner: InnerFilter::List(vec) }
     }
 
+    ///Filter range builder
+    /// starting and ending will be automatically ordered if written not in order
     pub fn from_range(starting: T, ending: T) -> Self {
         return if starting < ending {
             Self { inner: InnerFilter::Range(starting, ending) }
@@ -23,14 +36,17 @@ impl<T: PartialOrd + PartialEq> Filter<T> {
 }
 
 impl<T: PartialOrd + PartialEq> DirectedFilter<T> {
+    ///Build a filter that only look at source field
     pub fn only_source(filter: Filter<T>) -> Self {
         Self { inner: InnerDirectedFilter::Source(filter.inner) }
     }
 
+    ///Build a filter that only look at destination field
     pub fn only_destination(filter: Filter<T>) -> Self {
         Self { inner: InnerDirectedFilter::Destination(filter.inner) }
     }
 
+    ///Build an bidirectional `DirectedFilter`
     pub fn both_directions(filter: Filter<T>) -> Self {
         Self { inner: InnerDirectedFilter::Both(filter.inner) }
     }
