@@ -29,7 +29,7 @@ fn list_interfaces() {
 }
 
 fn capture(args: CaptureParams) {
-    let mut capturer_cfg = weirdshark::capturer::CapturerBuilder::new()
+    let mut capturer_cfg = weirdshark::CapturerBuilder::new()
         .report_path(args.path.as_ref());
 
     if let Some(i_name) = &args.interface_name {
@@ -47,22 +47,22 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.ips.is_empty() {
-        capturer_cfg = capturer_cfg.add_undirected_filter_ip(weirdshark::filters::Filter::from_vec(args.ips));
+        capturer_cfg = capturer_cfg.add_undirected_filter_ip(weirdshark::Filter::from_vec(args.ips));
     }
 
     if !args.source_ips.is_empty() {
-        let filter = weirdshark::filters::Filter::from_vec(args.source_ips);
-        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_source(filter));
+        let filter = weirdshark::Filter::from_vec(args.source_ips);
+        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_source(filter));
     }
 
     if !args.destination_ips.is_empty() {
-        let filter = weirdshark::filters::Filter::from_vec(args.destination_ips);
-        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_destination(filter));
+        let filter = weirdshark::Filter::from_vec(args.destination_ips);
+        capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_destination(filter));
     }
 
     if !args.ip_range.is_empty() {
-        let vec: Vec<weirdshark::filters::Filter<IpAddr>> = args.ip_range.into_iter()
-            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
+        let vec: Vec<weirdshark::Filter<IpAddr>> = args.ip_range.into_iter()
+            .map(|tuple| { weirdshark::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_undirected_filter_ip(filter);
@@ -70,40 +70,40 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.source_ip_range.is_empty() {
-        let vec: Vec<weirdshark::filters::Filter<IpAddr>> = args.source_ip_range.into_iter()
-            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
+        let vec: Vec<weirdshark::Filter<IpAddr>> = args.source_ip_range.into_iter()
+            .map(|tuple| { weirdshark::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
-            capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_source(filter));
+            capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_source(filter));
         }
     }
 
     if !args.destination_ip_range.is_empty() {
-        let vec: Vec<weirdshark::filters::Filter<IpAddr>> = args.destination_ip_range.into_iter()
-            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
+        let vec: Vec<weirdshark::Filter<IpAddr>> = args.destination_ip_range.into_iter()
+            .map(|tuple| { weirdshark::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
-            capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::filters::DirectedFilter::only_destination(filter));
+            capturer_cfg = capturer_cfg.add_directed_filter_ip(weirdshark::DirectedFilter::only_destination(filter));
         }
     }
 
     if !args.ports.is_empty() {
-        capturer_cfg = capturer_cfg.add_undirected_filter_port(weirdshark::filters::Filter::from_vec(args.ports));
+        capturer_cfg = capturer_cfg.add_undirected_filter_port(weirdshark::Filter::from_vec(args.ports));
     }
 
     if !args.source_ports.is_empty() {
-        let filter = weirdshark::filters::Filter::from_vec(args.source_ports);
-        capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_source(filter));
+        let filter = weirdshark::Filter::from_vec(args.source_ports);
+        capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::DirectedFilter::only_source(filter));
     }
 
     if !args.destination_ports.is_empty() {
-        let filter = weirdshark::filters::Filter::from_vec(args.destination_ports);
-        capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_destination(filter));
+        let filter = weirdshark::Filter::from_vec(args.destination_ports);
+        capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::DirectedFilter::only_destination(filter));
     }
 
     if !args.port_range.is_empty() {
-        let vec: Vec<weirdshark::filters::Filter<u16>> = args.port_range.into_iter()
-            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
+        let vec: Vec<weirdshark::Filter<u16>> = args.port_range.into_iter()
+            .map(|tuple| { weirdshark::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
             capturer_cfg = capturer_cfg.add_undirected_filter_port(filter);
@@ -111,20 +111,20 @@ fn capture(args: CaptureParams) {
     }
 
     if !args.source_port_range.is_empty() {
-        let vec: Vec<weirdshark::filters::Filter<u16>> = args.source_port_range.into_iter()
-            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
+        let vec: Vec<weirdshark::Filter<u16>> = args.source_port_range.into_iter()
+            .map(|tuple| { weirdshark::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
-            capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_source(filter));
+            capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::DirectedFilter::only_source(filter));
         }
     }
 
     if !args.destination_port_range.is_empty() {
-        let vec: Vec<weirdshark::filters::Filter<u16>> = args.destination_port_range.into_iter()
-            .map(|tuple| { weirdshark::filters::Filter::from_range(tuple._0, tuple._1) })
+        let vec: Vec<weirdshark::Filter<u16>> = args.destination_port_range.into_iter()
+            .map(|tuple| { weirdshark::Filter::from_range(tuple._0, tuple._1) })
             .collect();
         for filter in vec {
-            capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::filters::DirectedFilter::only_destination(filter));
+            capturer_cfg = capturer_cfg.add_directed_filter_port(weirdshark::DirectedFilter::only_destination(filter));
         }
     }
 

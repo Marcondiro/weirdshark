@@ -19,9 +19,13 @@ use serde::Serialize;
 use pnet::datalink::interfaces;
 use pnet::datalink::{NetworkInterface};
 
-pub mod capturer;
-pub mod filters;
-pub mod error;
+pub use capturer::{Capturer,CapturerBuilder};
+pub use filters::{Filter,DirectedFilter};
+pub use error::WeirdsharkError;
+
+mod capturer;
+mod filters;
+mod error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 pub enum TransportProtocols {
