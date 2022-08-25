@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn ws_sends_write_command_after_many_intervals() {
-        let interval = Duration::from_millis(100);
+        let interval = Duration::from_millis(200);
         let (sender, receiver) = mpsc::channel();
 
         let ws = WriteScheduler::new(interval, sender);
