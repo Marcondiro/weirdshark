@@ -23,28 +23,41 @@ mod builder;
 mod write_scheduler;
 mod parser;
 
-/// Capture manager.
+/// # Capture manager.
 ///
 /// This struct manages a capture, it can pause, start and stop the capture.
+/// It is heavily based on multi-threading and non blocking functions.
+///
+/// Basic usage example:
+/// ```
+/// let capturer_builder = weirdshark::CapturerBuilder::default();
+/// let capturer = capturer_builder.build().unwrap();
+/// capturer.start().unwrap();
+/// std::thread::sleep(std::time::Duration::from_secs(10));
+/// capturer.stop().unwrap();
+/// ```
 pub struct Capturer {
     worker_thread_handle: JoinHandle<()>,
     worker_sender: Sender<WorkerCommand>,
 }
 
 impl Capturer {
-    /// Start the capture
+    /// # Start the capture
+    /// This function is non-blocking.
     pub fn start(&self) -> Result<(), WeirdsharkError> {
         self.worker_sender.send(WorkerCommand::Start)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot start capturer.".to_string()))
     }
 
-    /// Pause the capture
+    /// # Pause the capture
+    /// This function is non-blocking.
     pub fn pause(&self) -> Result<(), WeirdsharkError> {
         self.worker_sender.send(WorkerCommand::Pause)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot pause capturer.".to_string()))
     }
 
-    /// Stop the capture
+    /// # Stop the capture
+    /// This function blocks until the capture is stopped and the report written.
     pub fn stop(self) -> Result<(), WeirdsharkError> {
         self.worker_sender.send(WorkerCommand::WriteFile)
             .map_err(|_| WeirdsharkError::CapturerError("Cannot save report.".to_string()))?;
@@ -183,7 +196,11 @@ impl CapturerWorker {
                                                     v.bytes += packet_info.bytes;
                                                     v.last_seen = now;
                                                 })
-                                                .or_insert(RecordValue { bytes: packet_info.bytes, first_seen: now, last_seen: now });
+                                                .or_insert(RecordValue {
+                                                    bytes: packet_info.bytes,
+                                                    first_seen: now,
+                                                    last_seen: now,
+                                                });
                                         }
                                     }
                                     Err(e) => panic!("Weirdshark is unable to receive packet: {}", e),

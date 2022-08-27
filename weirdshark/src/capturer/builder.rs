@@ -10,10 +10,18 @@ use crate::{get_interface_by_description, get_interface_by_name, TransportProtoc
 use crate::filters::{Filter, DirectedFilter};
 use crate::error::WeirdsharkError;
 
-/// Capturer builder.
+/// # Capturer builder.
 ///
 /// Struct used to create a Capturer following the builder pattern.
 /// Exposes different methods to set up the capture and a build method.
+///
+/// Basic usage example:
+/// ```
+/// let capturer_builder = weirdshark::CapturerBuilder::new()
+///     .interface_by_index(0)
+///     .report_path("my/path".as_ref())
+///     .report_interval(Some(std::time::Duration::from_secs(60)));
+/// ```
 pub struct CapturerBuilder {
     interface: Option<NetworkInterface>,
     report_path: PathBuf,
@@ -32,7 +40,7 @@ impl Default for CapturerBuilder {
                 && i.mac.is_some()
                 && !i.ips.is_empty())
             .reduce(|a, b| if a.ips.len() > b.ips.len() { a } else { b }) // get interface with most ips
-            .expect(&format!("Weirdshark cannot find a default interface. {:?}",datalink::interfaces()));
+            .expect(&format!("Weirdshark cannot find a default interface. {:?}", datalink::interfaces()));
         CapturerBuilder::new().interface(interface)
     }
 }
@@ -48,7 +56,9 @@ fn is_interface_running(_i: &NetworkInterface) -> bool {
 }
 
 impl CapturerBuilder {
-    /// Construct a new CapturerBuilder
+    /// # Construct a new CapturerBuilder
+    /// The resulting CapturerBuilder is NOT ready to build a Capturer until an interface is specified.
+    /// For a ready to use CapturerBuilder use `CapturerBuilder::default()` instead.
     pub fn new() -> Self {
         Self {
             interface: None,
@@ -65,19 +75,19 @@ impl CapturerBuilder {
         self
     }
 
-    /// Set the interface to capture from providing its name
+    /// Set the interface to capture from providing its **name**
     pub fn interface_by_name(mut self, name: &str) -> Self {
         self.interface = get_interface_by_name(name);
         self
     }
 
-    /// Set the interface to capture from providing its description
+    /// Set the interface to capture from providing its **description**
     pub fn interface_by_description(mut self, name: &str) -> Self {
         self.interface = get_interface_by_description(name);
         self
     }
 
-    /// Set the interface to capture from providing its index
+    /// Set the interface to capture from providing its **index**
     pub fn interface_by_index(mut self, index: u32) -> Self {
         let interface = datalink::interfaces().into_iter()
             .filter(|i| i.index == index)
@@ -98,32 +108,41 @@ impl CapturerBuilder {
         self
     }
 
-    ///Add a filter on Ip address. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
-    ///Example: filter on IpAddr: 10.12.0.1, (192.168.0.1,192.168.0.255) will accept either packets from 10.12.0.1 or any among 192.168.0.0/24, but if we add the TCP filter
+    ///Add a filter on Ip address. Note that more filters of the same kind will be placed in logic
+    /// OR while filters of different kinds will be placed in logic AND.
+    ///
+    ///Example: filter on IpAddr: 10.12.0.1, (192.168.0.1,192.168.0.255) will accept either packets
+    /// from 10.12.0.1 or any among 192.168.0.0/24, but if we add the TCP filter
     ///will accept only TCP traffic on given ip addresses
     pub fn add_directed_filter_ip(mut self, filter: DirectedFilter<IpAddr>) -> Self {
         self.ip_filters.push_back(filter);
         self
     }
 
-    ///Add an undirected filter on Ip address. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
-    ///Example: filter on IpAddr: 10.12.0.1, (192.168.0.1,192.168.0.255) will accept either packets from 10.12.0.1 or any among 192.168.0.0/24, but if we add the TCP filter
+    ///Add an undirected filter on Ip address. Note that more filters of the same kind will be
+    /// placed in logic OR while filters of different kinds will be placed in logic AND.
+    ///Example: filter on IpAddr: 10.12.0.1, (192.168.0.1,192.168.0.255) will accept either packets
+    /// from 10.12.0.1 or any among 192.168.0.0/24, but if we add the TCP filter
     ///will accept only TCP traffic on given ip addresses
     pub fn add_undirected_filter_ip(mut self, filter: Filter<IpAddr>) -> Self {
         self.ip_filters.push_back(DirectedFilter::both_directions(filter));
         self
     }
 
-    ///Add a filter on ports. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
-    ///Example: filter on ports: 1024, (443-500) will accept either packets from 1024 or any in the range 443-500 , but if we add the UDP filter
+    ///Add a filter on ports. Note that more filters of the same kind will be placed in logic OR
+    /// while filters of different kinds will be placed in logic AND.
+    ///Example: filter on ports: 1024, (443-500) will accept either packets from 1024 or any in the
+    /// range 443-500 , but if we add the UDP filter
     ///will accept only UDP traffic on given ports
     pub fn add_directed_filter_port(mut self, filter: DirectedFilter<u16>) -> Self {
         self.port_filters.push_back(filter);
         self
     }
 
-    ///Add a filter on ports. Note that more filters of the same kind will be placed in logic OR while filters of different kinds will be placed in logic AND.
-    ///Example: filter on ports: 1024, (443-500) will accept either packets from 1024 or any in the range 443-500 , but if we add the UDP filter
+    ///Add a filter on ports. Note that more filters of the same kind will be placed in logic OR
+    /// while filters of different kinds will be placed in logic AND.
+    ///Example: filter on ports: 1024, (443-500) will accept either packets from 1024 or any in the
+    /// range 443-500 , but if we add the UDP filter
     ///will accept only UDP traffic on given ports
     pub fn add_undirected_filter_port(mut self, filter: Filter<u16>) -> Self {
         self.port_filters.push_back(DirectedFilter::both_directions(filter));
