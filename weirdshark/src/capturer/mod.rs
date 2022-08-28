@@ -114,12 +114,18 @@ impl CapturerWorker {
     }
 
     fn write_csv(&mut self) -> Result<(), Box<dyn Error>> {
-        let file_name = ("weirdshark_capture_".to_string() +
-            self.interface.name.as_str() +
-            "_" +
-            &chrono::Local::now().to_string() +
-            ".csv"
-        ).replace(":", "-");
+        let file_name = (if cfg!(windows) {
+            "weirdshark_capture_".to_string() +
+                self.interface.description.as_str()
+        } else {
+            "weirdshark_capture_".to_string() +
+                self.interface.name.as_str()
+        }
+            + "_"
+            + &chrono::Local::now().to_string()
+            + ".csv")
+            .replace(" ", "_")
+            .replace(":", "-");
         let path = self.report_path.join(&file_name);
         let mut writer = csv::Writer::from_path(&path)?;
         let map = mem::take(&mut self.map);

@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::path::Path;
 use weirdshark::*;
 use pnet::datalink::channel;
 use pnet::datalink::Channel::Ethernet;
@@ -19,9 +20,12 @@ fn packet_is_recorded() {
     let dest_port = 53;
     let transport_protocol = TransportProtocols::UDP;
 
-    let path = "./tests".as_ref();
+    let path = Path::new("./tests");
+    if !path.exists(){
+        std::fs::create_dir(path).expect("Cannot create dir tests");
+    }
     let capturer_builder = CapturerBuilder::default()
-        .report_path(path)
+        .report_path(&path)
         .add_directed_filter_ip(DirectedFilter::only_source(
             Filter::from_vec([IpAddr::from(source_ip)].to_vec()))
         )
