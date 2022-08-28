@@ -69,7 +69,7 @@ fn packet_is_recorded() {
     ).next().unwrap().unwrap().path();
 
     let mut rdr = csv::Reader::from_path(&report).unwrap();
-    let record = rdr.deserialize().filter(
+    rdr.deserialize().filter(
         |res: &Result<Record, csv::Error>| match res {
             Ok(r) => r.source_ip == IpAddr::from(source_ip) &&
                 r.destination_ip == IpAddr::from(dest_ip) &&
