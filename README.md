@@ -39,3 +39,7 @@ A more complete example is the weirdshark-cli program itself
 Weirdshark-cli, as the name suggests, is a command line interface program that exploits most of the capabilities of weirdshark exposed before.
 
 To have usage details run `weirdshark-cli -h`
+
+## Install
+### Windows
+To run on windows you will need to install pcap drivers at https://npcap.com/
