@@ -74,7 +74,7 @@ mod tests {
         ws.start();
         let start_time = Instant::now();
 
-        let result = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
+        let result = receiver.recv_timeout(interval + Duration::from_millis(100)); // 100 millis tolerance
         let wakeup_time = Instant::now();
         assert!(result.is_ok(), "The file generation scheduler didn't work, timeout reached");
         match result.unwrap() {
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn ws_sends_write_command_after_many_intervals() {
-        let interval = Duration::from_millis(200);
+        let interval = Duration::from_millis(100);
         let (sender, receiver) = mpsc::channel();
 
         let ws = WriteScheduler::new(interval, sender);
@@ -93,7 +93,7 @@ mod tests {
 
         for _ in 0..20 {
             let start_time = Instant::now();
-            let result = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
+            let result = receiver.recv_timeout(interval + Duration::from_millis(100)); // 100 millis tolerance
             let wakeup_time = Instant::now();
             assert!(result.is_ok(), "The file generation scheduler didn't work, timeout reached");
             match result.unwrap() {
@@ -112,7 +112,7 @@ mod tests {
         ws.start();
         ws.stop();
         // ignore one eventual write caused by the first start
-        let _ = receiver.recv_timeout(interval.mul_f32(1.1)); // 10% tolerance
+        let _ = receiver.recv_timeout(interval + Duration::from_millis(100)); // 100 millis tolerance
 
         let result = receiver.recv_timeout(interval * 20);
         assert!(result.is_err(), "The file generation scheduler pause didn't work, message received");

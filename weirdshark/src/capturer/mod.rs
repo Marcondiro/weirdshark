@@ -33,7 +33,7 @@ mod parser;
 /// let capturer_builder = weirdshark::CapturerBuilder::default();
 /// let capturer = capturer_builder.build().unwrap();
 /// capturer.start().unwrap();
-/// std::thread::sleep(std::time::Duration::from_secs(10));
+/// std::thread::sleep(std::time::Duration::from_secs(5));
 /// capturer.stop().unwrap();
 /// ```
 pub struct Capturer {
@@ -104,7 +104,7 @@ impl CapturerWorker {
             Some(interval) => Some(WriteScheduler::new(interval, sender.clone())),
             None => None,
         };
-        let is_paused = false;
+        let is_paused = true;
 
         Self { sender, receiver, map, report_scheduler, report_path, is_paused, interface, ip_filters, port_filters, protocol_filter }
     }

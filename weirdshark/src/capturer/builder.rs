@@ -96,6 +96,11 @@ impl CapturerBuilder {
         self
     }
 
+    /// Get the interface set on the builder
+    pub fn get_interface(&self) -> Option<NetworkInterface> {
+        self.interface.clone()
+    }
+
     /// Set the path where to save reports
     pub fn report_path(mut self, path: &Path) -> Self {
         self.report_path = PathBuf::from(path);
