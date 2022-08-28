@@ -1,10 +1,13 @@
 use std::net::IpAddr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use weirdshark::*;
-use pnet::datalink::channel;
+use pnet::datalink::{channel, DataLinkSender};
 use pnet::datalink::Channel::Ethernet;
+use weirdshark::TransportProtocols::TCP;
+use serial_test::serial;
 
 #[test]
+#[serial]
 fn packet_is_recorded() {
     // a sample DNS query for www.mozilla.org
     let packet = [0x08, 0x00, 0x45, 0x00, 0x00, 0x48, 0x5a, 0x7d, 0x40, 0x00, 0x40, 0x11,
@@ -21,9 +24,7 @@ fn packet_is_recorded() {
     let transport_protocol = TransportProtocols::UDP;
 
     let path = Path::new("./tests");
-    if !path.exists() {
-        std::fs::create_dir(path).expect("Cannot create dir tests");
-    }
+
     let capturer_builder = CapturerBuilder::default()
         .report_path(&path)
         .add_directed_filter_ip(DirectedFilter::only_source(
@@ -47,26 +48,14 @@ fn packet_is_recorded() {
     frame.extend_from_slice(&mac); // source MAC
     frame.extend_from_slice(&packet);
 
-    let mut pnet_sender = match channel(&interface, Default::default()) {
-        Ok(Ethernet(sender, _)) => sender,
-        Ok(_) => panic!("Unhandled channel type"),
-        Err(e) => panic!("Unable to create channel: {}", e),
-    };
-
-    let capturer = capturer_builder.build().unwrap();
+    let (capturer, mut pnet_sender) = setup_test(path, Some(capturer_builder)).unwrap();
     capturer.start().unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(500));
+
     pnet_sender.send_to(&frame, None).unwrap().unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
     capturer.stop().unwrap();
 
-    let paths = std::fs::read_dir(path).unwrap();
-    let report = paths.filter(
-        |p| match p {
-            Ok(f) => f.file_name().to_str().unwrap().ends_with(".csv"),
-            _ => false
-        }
-    ).next().unwrap().unwrap().path();
+    let report = get_report(path).unwrap();
 
     let mut rdr = csv::Reader::from_path(&report).unwrap();
     rdr.deserialize().filter(
@@ -83,6 +72,7 @@ fn packet_is_recorded() {
     std::fs::remove_file(&report).unwrap();
 }
 
+// A sample http request of google homepage to www.google.com
 static HTTP_REQ: &'static [u8] = &[
     0xe4, 0x18, 0x6b, 0x70, 0xb9, 0x48, 0x94, 0xe6, 0xf7, 0xd4, 0xd5, 0xc3, 0x08, 0x00, 0x45, 0x00,
     0x00, 0xc1, 0x84, 0x2d, 0x40, 0x00, 0x40, 0x06, 0xac, 0x91, 0xc0, 0xa8, 0x01, 0x91, 0x8e, 0xfa,
@@ -98,7 +88,7 @@ static HTTP_REQ: &'static [u8] = &[
     0x63, 0x6f, 0x6d, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x3a,
     0x20, 0x4b, 0x65, 0x65, 0x70, 0x2d, 0x41, 0x6c, 0x69, 0x76, 0x65, 0x0d, 0x0a, 0x0d, 0x0a
 ];
-
+// The http response to the previous request
 static HTTP_RES: &'static [u8] = &[
     0x94, 0xe6, 0xf7, 0xd4, 0xd5, 0xc3, 0xe4, 0x18, 0x6b, 0x70, 0xb9, 0x48, 0x08, 0x00, 0x45, 0x00,
     0x01, 0x27, 0xa3, 0x66, 0x00, 0x00, 0x7b, 0x06, 0x91, 0xf2, 0x8e, 0xfa, 0xb8, 0x44, 0xc0, 0xa8,
@@ -121,3 +111,114 @@ static HTTP_RES: &'static [u8] = &[
     0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e, 0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e, 0x0d, 0x0a,
     0x30, 0x0d, 0x0a, 0x0d, 0x0a
 ];
+
+#[test]
+#[serial]
+fn pause_dont_capture() {
+    let path = Path::new("./tests");
+
+    let (capturer, mut pnet_sender) = setup_test(path,None).unwrap();
+
+    capturer.pause().unwrap();
+
+    pnet_sender.send_to(&HTTP_REQ, None).unwrap().unwrap();
+
+    capturer.start().unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    capturer.stop().unwrap();
+
+    let report = get_report(path).unwrap();
+
+    let mut rdr = csv::Reader::from_path(&report).unwrap();
+
+    let res = rdr.deserialize().filter(
+        |res: &Result<Record, csv::Error>| match res {
+            Ok(r) =>
+            //Filter only the HTTP_REQ
+                r.source_ip == IpAddr::from([192, 168, 1, 145]) &&
+                    r.destination_ip == IpAddr::from([142, 250, 184, 68]) &&
+                    r.transport_protocol == TransportProtocols::TCP &&
+                    r.source_port == 55334 &&
+                    r.destination_port == 80,
+            _ => panic!("Cannot deserialize csv"),
+        }
+    ).next();
+
+    //If pause worked, packet has not been registered
+    assert!(res.is_none());
+
+    std::fs::remove_file(&report).unwrap();
+}
+
+
+#[test]
+#[serial]
+fn filters_drop_unwanted() {
+    let path = Path::new("./tests");
+
+    let capturer_builder = CapturerBuilder::default()
+        .report_path(&path)
+        .add_directed_filter_ip(DirectedFilter::only_source(Filter::from_vec(vec![IpAddr::from([192, 168, 1, 145])])))
+        .add_directed_filter_ip(DirectedFilter::only_destination(Filter::from_vec(vec![IpAddr::from([142, 250, 184, 68])])))
+        .add_directed_filter_port(DirectedFilter::only_source(Filter::from_vec(vec![55334])))
+        .add_directed_filter_port(DirectedFilter::only_destination(Filter::from_vec(vec![80])))
+        .add_transport_protocol_filter(Some(TCP));
+
+    let (capturer, mut pnet_sender) = setup_test(path, Some(capturer_builder)).unwrap();
+
+    capturer.start().unwrap();
+
+    //This should be accepted
+    pnet_sender.send_to(HTTP_REQ,None).unwrap().unwrap();
+    //This should be rejected
+    pnet_sender.send_to(HTTP_RES,None).unwrap().unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    capturer.stop().unwrap();
+
+    let report = get_report(path).unwrap();
+
+    let mut rdr = csv::Reader::from_path(&report).unwrap();
+
+    let res = rdr.deserialize::<Record>().count();
+
+    assert_eq!(res, 1);
+
+    std::fs::remove_file(&report).unwrap();
+}
+
+fn setup_test(path: &Path, builder: Option<CapturerBuilder>) -> Option<(Capturer, Box<dyn DataLinkSender>)> {
+    let capturer_builder = match builder {
+        Some(builder) => builder,
+        None => CapturerBuilder::default()
+    }.report_path(&path);
+    let interface = capturer_builder.get_interface()?;
+    let capturer = capturer_builder.build().ok()?;
+
+    if !path.exists() {
+        std::fs::create_dir(path).unwrap();
+    }
+
+    let pnet_sender = match channel(&interface, Default::default()) {
+        Ok(Ethernet(sender, _)) => sender,
+        Ok(_) => panic!("Unhandled channel type"),
+        Err(e) => panic!("Unable to create channel: {}", e),
+    };
+
+    return Some((capturer, pnet_sender));
+}
+
+fn get_report(path: &Path) -> Option<PathBuf> {
+    let paths = std::fs::read_dir(path).unwrap();
+    return paths.filter(
+        |p| match p {
+            Ok(f) => f.file_name().to_str().unwrap().ends_with(".csv"),
+            _ => false
+        }
+    )
+        .next()
+        .map_or_else(|| { None }, |result| {
+            result.ok()
+        })
+        .map(|dir_entry| { dir_entry.path() });
+}
