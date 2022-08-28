@@ -15,34 +15,38 @@
 //! generated and filters to apply to captured data.
 
 use std::net::IpAddr;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use pnet::datalink::interfaces;
 use pnet::datalink::{NetworkInterface};
 
-pub use capturer::{Capturer,CapturerBuilder};
-pub use filters::{Filter,DirectedFilter};
+pub use capturer::{Capturer, CapturerBuilder};
+pub use filters::{Filter, DirectedFilter};
 pub use error::WeirdsharkError;
 
 mod capturer;
 mod filters;
 mod error;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TransportProtocols {
     TCP,
     UDP,
 }
 
-#[derive(Serialize)]
-struct Record {
-    source_ip: IpAddr,
-    destination_ip: IpAddr,
-    transport_protocol: TransportProtocols,
-    source_port: u16,
-    destination_port: u16,
-    bytes: usize,
-    first_seen: chrono::DateTime<chrono::Local>,
-    last_seen: chrono::DateTime<chrono::Local>,
+/// # Capture record
+///
+/// Struct equivalent of the record that is saved in the CSV file.
+/// Can be serialized or deserialized using serde and the csv crate.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Record {
+    pub source_ip: IpAddr,
+    pub destination_ip: IpAddr,
+    pub transport_protocol: TransportProtocols,
+    pub source_port: u16,
+    pub destination_port: u16,
+    pub bytes: usize,
+    pub first_seen: chrono::DateTime<chrono::Local>,
+    pub last_seen: chrono::DateTime<chrono::Local>,
 }
 
 impl Record {
