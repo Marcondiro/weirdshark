@@ -114,10 +114,10 @@ static HTTP_RES: &'static [u8] = &[
 
 #[test]
 #[serial]
-fn pause_dont_capture() {
+fn paused_capture_doesnt_capture() {
     let path = Path::new("./tests");
 
-    let (capturer, mut pnet_sender) = setup_test(path,None).unwrap();
+    let (capturer, mut pnet_sender) = setup_test(path, None).unwrap();
 
     capturer.pause().unwrap();
 
@@ -137,7 +137,7 @@ fn pause_dont_capture() {
             //Filter only the HTTP_REQ
                 r.source_ip == IpAddr::from([192, 168, 1, 145]) &&
                     r.destination_ip == IpAddr::from([142, 250, 184, 68]) &&
-                    r.transport_protocol == TransportProtocols::TCP &&
+                    r.transport_protocol == TCP &&
                     r.source_port == 55334 &&
                     r.destination_port == 80,
             _ => panic!("Cannot deserialize csv"),
@@ -169,9 +169,9 @@ fn filters_drop_unwanted() {
     capturer.start().unwrap();
 
     //This should be accepted
-    pnet_sender.send_to(HTTP_REQ,None).unwrap().unwrap();
+    pnet_sender.send_to(HTTP_REQ, None).unwrap().unwrap();
     //This should be rejected
-    pnet_sender.send_to(HTTP_RES,None).unwrap().unwrap();
+    pnet_sender.send_to(HTTP_RES, None).unwrap().unwrap();
 
     std::thread::sleep(std::time::Duration::from_millis(500));
     capturer.stop().unwrap();
