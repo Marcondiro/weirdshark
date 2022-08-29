@@ -49,7 +49,7 @@ impl<T: FromStr> FromStr for Tuple2<T> {
 
 #[derive(Debug)]
 pub enum ParseError {
-    GenericError(String),
+    //GenericError(String),
     BadValueNumber(String),
     MissingBracket(String),
     ElementParsing(String),
