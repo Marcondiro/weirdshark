@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error;
 use std::str::FromStr;
-use ParseError::{ElementParsing,MissingBracket,BadValueNumber};
+use ParseError::{ElementParsing, MissingBracket, BadValueNumber};
 
 #[derive(Debug)]
 pub struct Tuple2<T: FromStr> {
@@ -9,7 +9,6 @@ pub struct Tuple2<T: FromStr> {
     pub(crate) _1: T,
 }
 
-//TODO:ToBe tested
 impl<T: FromStr> FromStr for Tuple2<T> {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

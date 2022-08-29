@@ -60,15 +60,18 @@ pub struct CaptureParams {
     pub destination_ips: Vec<IpAddr>,
 
     /// Filter by ip, insert IP range to include in the report
-    /// Packets which source OR destination IP is in the range are recorded
+    /// Packets which source OR destination IP is in the range are recorded.
+    /// Ranges must be in the form `(start,end)`
     #[clap(long, multiple_values = true)]
     pub ip_range: Vec<tuple2::Tuple2<IpAddr>>,
 
-    /// Filter by source ip, insert IP range to include in the report
+    /// Filter by source ip, insert IP range to include in the report.
+    /// Ranges must be in the form `(start,end)`
     #[clap(long, multiple_values = true)]
     pub source_ip_range: Vec<tuple2::Tuple2<IpAddr>>,
 
-    /// Filter by destination ip, insert IP range to include in the report
+    /// Filter by destination ip, insert IP range to include in the report.
+    /// Ranges must be in the form `(start,end)`
     #[clap(long, multiple_values = true)]
     pub destination_ip_range: Vec<tuple2::Tuple2<IpAddr>>,
 
@@ -90,15 +93,18 @@ pub struct CaptureParams {
     pub destination_ports: Vec<u16>,
 
     /// Filter by port, insert port range to include in the report
-    /// Packets which source OR destination port is in the range are recorded
+    /// Packets which source OR destination port is in the range are recorded.
+    /// Ranges must be in the form `(start,end)`
     #[clap(long, multiple_values = true)]
     pub port_range: Vec<tuple2::Tuple2<u16>>,
 
-    /// Filter by source port, insert port range to include in the report
+    /// Filter by source port, insert port range to include in the report.
+    /// Ranges must be in the form `(start,end)`
     #[clap(long, multiple_values = true)]
     pub source_port_range: Vec<tuple2::Tuple2<u16>>,
 
-    /// Filter by destination port, insert port range to include in the report
+    /// Filter by destination port, insert port range to include in the report.
+    /// Ranges must be in the form `(start,end)`
     #[clap(long, multiple_values = true)]
     pub destination_port_range: Vec<tuple2::Tuple2<u16>>,
 

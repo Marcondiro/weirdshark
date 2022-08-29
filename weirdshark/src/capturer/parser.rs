@@ -68,14 +68,13 @@ fn parse_ethernet_frame(data: Vec<u8>) -> Result<EthernetPacket<'static>, Weirds
     };
 }
 
-fn parse_internet_packet<'p, 'b>(ethernet: &'p EthernetPacket) -> Result<InternetPacket, WeirdsharkError> {
+fn parse_internet_packet(ethernet: &EthernetPacket) -> Result<InternetPacket, WeirdsharkError> {
     let (ip_version, source, destination, next_level_protocol, payload) = match ethernet.get_ethertype() {
         EtherTypes::Ipv4 => {
             let ip_packet = parse_ipv4_packet(ethernet)?;
             let source = IpAddr::from(ip_packet.get_source());
             let destination = IpAddr::from(ip_packet.get_destination());
             let next_protocol = ip_packet.get_next_level_protocol();
-            /*TODO: Here we copy transport segment, which is a waste, but I didn't find a way with borrows*/
             let payload = ip_packet.payload().to_vec();
             (InternetProtocol::Ipv4, source, destination, next_protocol, payload)
         }
