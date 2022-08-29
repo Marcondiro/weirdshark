@@ -40,6 +40,10 @@ Weirdshark-cli, as the name suggests, is a command line interface program that e
 
 To have usage details run `weirdshark-cli -h`
 
-## Install
-### Windows
-To run on windows you will need to install pcap drivers at https://npcap.com/
+## Windows
+
+There are two requirements for building on Windows:
+
+ * You must use a version of Rust which uses the MSVC toolchain
+ * You must have [WinPcap](https://www.winpcap.org/) or [npcap](https://nmap.org/npcap/) installed
+   (tested with version WinPcap 4.1.3) (If using npcap, make sure to install with the "Install Npcap in WinPcap API-compatible Mode")
