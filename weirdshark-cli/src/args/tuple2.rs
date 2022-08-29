@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::error::Error;
 use std::str::FromStr;
-use ParseError::{ElementParsing, GenericError};
+use ParseError::{ElementParsing,MissingBracket,BadValueNumber};
 
 #[derive(Debug)]
 pub struct Tuple2<T: FromStr> {
@@ -15,19 +15,19 @@ impl<T: FromStr> FromStr for Tuple2<T> {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut s_mut = s.trim();
         if !s_mut.starts_with("(") {
-            return Err(GenericError(s_mut.to_string()));
+            return Err(MissingBracket(s_mut.to_string()));
         }
         let mut chars = s_mut.chars();
         chars.next();
         if !s_mut.ends_with(")") {
-            return Err(GenericError(s_mut.to_string()));
+            return Err(MissingBracket(s_mut.to_string()));
         }
         chars.next_back();
         s_mut = chars.as_str();
 
         let vec: Vec<&str> = s_mut.split(",").map(|s| { s.trim() }).collect();
         if vec.len() != 2 {
-            return Err(GenericError(s_mut.to_string()));
+            return Err(BadValueNumber(s_mut.to_string()));
         }
         let mut _0 = None;
         let mut _1 = None;
@@ -51,7 +51,8 @@ impl<T: FromStr> FromStr for Tuple2<T> {
 #[derive(Debug)]
 pub enum ParseError {
     GenericError(String),
-    //MissingOpenBracket,
+    BadValueNumber(String),
+    MissingBracket(String),
     ElementParsing(String),
 }
 
